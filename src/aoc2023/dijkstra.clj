@@ -80,10 +80,7 @@
       (if (nil? v)
         (reverse path)
         (let [parent (get prev v)]
-          (if (= parent v)
-            (reverse path)
-            (recur parent (conj path v))
-            )
+          (recur parent (conj path v))
           )
         )
       )
