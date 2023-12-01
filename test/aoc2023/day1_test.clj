@@ -6,28 +6,17 @@
 
 (def puzzle-input (slurp "resources/day1.txt"))
 
+(def tokens {"one" 1, "two" 2, "three" 3, "four" 4, "five" 5, "six" 6, "seven" 7, "eight" 8, "nine" 9,
+             "1"   1, "2" 2, "3" 3, "4" 4, "5" 5, "6" 6, "7" 7, "8" 8, "9" 9})
+
 (defn parse-word-or-digit-first
   [line]
-  (str/replace-first line #"one|two|three|four|five|six|seven|eight|nine|[0-9]"
-                     #(condp = %
-                        "one" "1"
-                        "two" "2"
-                        "three" "3"
-                        "four" "4"
-                        "five" "5"
-                        "six" "6"
-                        "seven" "7"
-                        "eight" "8"
-                        "nine" "9"
-                        % %
-                        ))
+  (str/replace-first line (re-pattern (str/join "|" (keys tokens))) #(str (get tokens %)))
   )
 
 (defn parse-word-or-digit-last
   [line]
-  (let [tokens {"one" 1, "two" 2, "three" 3, "four" 4, "five" 5, "six" 6, "seven" 7, "eight" 8, "nine" 9,
-                "1"   1, "2" 2, "3" 3, "4" 4, "5" 5, "6" 6, "7" 7, "8" 8, "9" 9}
-        idx (apply max (map #(.lastIndexOf line %) (keys tokens)))
+  (let [idx (apply max (map #(.lastIndexOf line %) (keys tokens)))
         suffix (.substring line idx)
         suffix (str/replace-first suffix (re-pattern (str/join "|" (keys tokens))) #(str (get tokens %)))
         prefix (.substring line 0 idx)
