@@ -25,14 +25,14 @@
     )
   )
 
-(defn parse-digits
+(defn leave-only-digits
   [line]
   (str/replace line #"[a-z]" "")
   )
 
 (defn parse-digits-or-words
   [line]
-  (-> line (parse-word-or-digit-first) (parse-word-or-digit-last) (parse-digits))
+  (-> line (parse-word-or-digit-first) (parse-word-or-digit-last) (leave-only-digits))
   )
 
 (defn find-celebration-value
@@ -49,7 +49,7 @@
 
 (defn find-celebration-value-1
   [line]
-  (find-celebration-value line parse-digits)
+  (find-celebration-value line leave-only-digits)
   )
 
 (defn find-celebration-value-2
