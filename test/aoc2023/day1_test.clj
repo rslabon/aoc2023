@@ -25,21 +25,15 @@
 
 (defn parse-word-or-digit-last
   [line]
-  (str/reverse
-    (str/replace-first (str/reverse line)
-                       (re-pattern (str (str/reverse "one|two|three|four|five|six|seven|eight|nine") "|[0-9]"))
-                       #(condp = %
-                          (str/reverse "one") "1"
-                          (str/reverse "two") "2"
-                          (str/reverse "three") "3"
-                          (str/reverse "four") "4"
-                          (str/reverse "five") "5"
-                          (str/reverse "six") "6"
-                          (str/reverse "seven") "7"
-                          (str/reverse "eight") "8"
-                          (str/reverse "nine") "9"
-                          % %
-                          )))
+  (let [tokens {"one" 1, "two" 2, "three" 3, "four" 4, "five" 5, "six" 6, "seven" 7, "eight" 8, "nine" 9,
+                "1"   1, "2" 2, "3" 3, "4" 4, "5" 5, "6" 6, "7" 7, "8" 8, "9" 9}
+        idx (apply max (map #(.lastIndexOf line %) (keys tokens)))
+        suffix (.substring line idx)
+        suffix (str/replace-first suffix (re-pattern (str/join "|" (keys tokens))) #(str (get tokens %)))
+        prefix (.substring line 0 idx)
+        ]
+    (str prefix suffix)
+    )
   )
 
 (defn parse-digits
@@ -103,6 +97,7 @@
     )
   (testing "part2"
     (is (= (parse-word-or-digit-last "oneoneone") "oneone1"))
+    (is (= (parse-word-or-digit-last "oneoneonex") "oneone1x"))
     (is (= (parse-digits-or-words "one") "1"))
     (is (= (parse-digits-or-words "7twoneklt") "71"))
     (is (= (parse-digits-or-words "x7twoneklt") "71"))
