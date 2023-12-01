@@ -6,7 +6,7 @@
 
 (def puzzle-input (slurp "resources/day1.txt"))
 
-(defn parse-digits-first
+(defn parse-word-or-digit-first
   [line]
   (str/replace-first line #"one|two|three|four|five|six|seven|eight|nine|[0-9]"
                      #(condp = %
@@ -23,7 +23,7 @@
                         ))
   )
 
-(defn parse-digits-last
+(defn parse-word-or-digit-last
   [line]
   (str/reverse
     (str/replace-first (str/reverse line)
@@ -44,7 +44,12 @@
 
 (defn parse-digits
   [line]
-  (str/replace (-> line (parse-digits-first) (parse-digits-last)) #"[a-z]" "")
+  (str/replace line #"[a-z]" "")
+  )
+
+(defn parse-digits-or-words
+  [line]
+  (-> line (parse-word-or-digit-first) (parse-word-or-digit-last) (parse-digits))
   )
 
 (defn find-celebration-value
@@ -61,12 +66,12 @@
 
 (defn find-celebration-value-1
   [line]
-  (find-celebration-value line (fn [line] (str/replace line #"[a-z]" "")))
+  (find-celebration-value line parse-digits)
   )
 
 (defn find-celebration-value-2
   [line]
-  (find-celebration-value line (fn [line] (str/replace (-> line (parse-digits-first) (parse-digits-last)) #"[a-z]" "")))
+  (find-celebration-value line parse-digits-or-words)
   )
 
 (defn solve
@@ -97,17 +102,17 @@
     (is (= (part-1 puzzle-input) 54632))
     )
   (testing "part2"
-    (is (= (parse-digits-last "oneoneone") "oneone1"))
-    (is (= (parse-digits "one") "1"))
-    (is (= (parse-digits "7twoneklt") "71"))
-    (is (= (parse-digits "x7twoneklt") "71"))
-    (is (= (parse-digits "oneone") "11"))
-    (is (= (parse-digits "oneonetwo") "12"))
-    (is (= (parse-digits "oneonetwonine") "19"))
-    (is (= (parse-digits "1one") "11"))
-    (is (= (parse-digits "xone") "1"))
-    (is (= (parse-digits "xonex") "1"))
-    (is (= (parse-digits "eightwothree") "83"))
+    (is (= (parse-word-or-digit-last "oneoneone") "oneone1"))
+    (is (= (parse-digits-or-words "one") "1"))
+    (is (= (parse-digits-or-words "7twoneklt") "71"))
+    (is (= (parse-digits-or-words "x7twoneklt") "71"))
+    (is (= (parse-digits-or-words "oneone") "11"))
+    (is (= (parse-digits-or-words "oneonetwo") "12"))
+    (is (= (parse-digits-or-words "oneonetwonine") "19"))
+    (is (= (parse-digits-or-words "1one") "11"))
+    (is (= (parse-digits-or-words "xone") "1"))
+    (is (= (parse-digits-or-words "xonex") "1"))
+    (is (= (parse-digits-or-words "eightwothree") "83"))
     (is (= (find-celebration-value-2 "two1nine") 29))
     (is (= (find-celebration-value-2 "eightwothree") 83))
     (is (= (find-celebration-value-2 "7pqrstsixteen") 76))
