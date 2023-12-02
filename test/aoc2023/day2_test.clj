@@ -5,12 +5,21 @@
 (def puzzle-input (slurp "resources/day2.txt"))
 (def example-input "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green\nGame 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue\nGame 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red\nGame 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red\nGame 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green")
 
+
+(defn parse-cube-line
+  "parsing line like '3 blue, 4 red' into {\"blue\" 3, \"red\" 4}"
+  [line]
+  (let [cubes (str/split line #",")
+        cubes (map #(str/split (str/trim %) #" ") cubes)
+        cubes (map (fn [[value color]] [color (read-string value)]) cubes)]
+    (into {} cubes)
+    )
+  )
+
 (defn parse-cubes
   [line]
-  (let [cubes (str/split line #";")
-        cubes (map #(str/split % #",") cubes)
-        cubes (map #(into {} (map (fn [item] (let [[value color] (str/split (str/trim item) #" ")] [color (read-string value)])) %)) cubes)]
-    cubes
+  (let [cubes (str/split line #";")]
+    (map parse-cube-line cubes)
     )
   )
 
@@ -98,6 +107,6 @@
     )
   (testing "part2"
     (is (= (part2 example-input) 2286))
-    (is (= (part2 puzzle-input) 0))
+    (is (= (part2 puzzle-input) 67335))
     )
   )
