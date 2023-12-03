@@ -34,11 +34,11 @@
     nil
     ))
 
-(defn parse
+(defn parse-cells
   [input]
   (let [lines (vec (str/split-lines input))
         grid (mapv #(vec (str/split % #"")) lines)
-        coords (flatten (map-indexed
+        schematic-cells (flatten (map-indexed
                           (fn [r-idx row]
                             (map-indexed
                               (fn [c-index cell]
@@ -49,63 +49,64 @@
                                    :number number-value
                                    }
                                   )) row)) grid))
-        coords (filter #(not= "." (:cell %)) coords)]
-    coords
+        schematic-cells (filter #(not= "." (:cell %)) schematic-cells)]
+    schematic-cells
     ))
 
-(defn adj-coords-numbers
-  [numberic-by-coords symoblic-coord]
-  (let [coords (:coords symoblic-coord)
+(defn get-adj-numeric-cells
+  [numeric-by-cells symbolic-cells]
+  (let [coords (:coords symbolic-cells)
         dx [[-1 -1] [-1 0] [-1 1] [0 -1] [0 1] [1 -1] [1 0] [1 1]]
-        adj (map #(map + coords %) dx)
-        adj-coords (filter some? (map #(get numberic-by-coords %) adj))]
-    (flatten adj-coords)))
+        adj-indexes (map #(map + coords %) dx)
+        adj-cells (filter some? (map #(get numeric-by-cells %) adj-indexes))]
+    (flatten adj-cells)))
 
 (defn get-numbers
-  [numbers-by-id]
-  (map #(:number (first (get numbers-by-id %))) (keys numbers-by-id))
+  [numeric-cells-by-id]
+  (map #(:number (first (get numeric-cells-by-id %))) (keys numeric-cells-by-id))
   )
 
 (defn part1
   [input]
-  (let [coords (parse input)
-        numberic-coords (filter #(some? (:number %)) coords)
-        numberic-by-coords (group-by :coords numberic-coords)
-        symoblic-coords (filter #(nil? (:number %)) coords)
-        adj-coords (flatten (map #(adj-coords-numbers numberic-by-coords %) symoblic-coords))
-        numbers-by-id (group-by :id adj-coords)
-        numbers (get-numbers numbers-by-id)]
+  (let [cells (parse-cells input)
+        numeric-cells (filter #(some? (:number %)) cells)
+        numeric-cells-by-coords (group-by :coords numeric-cells)
+        symbolic-cells (filter #(nil? (:number %)) cells)
+        adj-cells (flatten (map #(get-adj-numeric-cells numeric-cells-by-coords %) symbolic-cells))
+        numeric-cells-by-id (group-by :id adj-cells)
+        numbers (get-numbers numeric-cells-by-id)]
     (reduce + numbers))
   )
 
 (defn gear-ratios
   [numberic-by-coords gear-coords]
-  (map #(let [adj-coords (adj-coords-numbers numberic-by-coords %)
+  (map #(let [adj-coords (get-adj-numeric-cells numberic-by-coords %)
               adj-by-id (group-by :id adj-coords)
               adj-numbers (get-numbers adj-by-id)]
           (if (> (count adj-numbers) 1)
             (apply * adj-numbers)
             0
-            )) gear-coords)
+            ))
+       gear-coords)
   )
 
 (defn part2
   [input]
-  (let [coords (parse input)
-        numberic-coords (filter #(some? (:number %)) coords)
-        numberic-by-coords (group-by :coords numberic-coords)
-        gear-coords (filter #(= "*" (str (:cell %))) coords)
-        gears-ratios (gear-ratios numberic-by-coords gear-coords)]
+  (let [cells (parse-cells input)
+        numeric-cells (filter #(some? (:number %)) cells)
+        numeric-cells-by-coords (group-by :coords numeric-cells)
+        gear-cells (filter #(= "*" (str (:cell %))) cells)
+        gears-ratios (gear-ratios numeric-cells-by-coords gear-cells)]
     (reduce + gears-ratios)
     )
   )
 
 (deftest day3-test
-  (testing "parse"
-    (is (= (parse "1234") [{:cell   "1"
-                            :coords [0 0]
-                            :id     "003"
-                            :number 1234}
+  (testing "parse-cells"
+    (is (= (parse-cells "1234") [{:cell "1"
+                            :coords     [0 0]
+                            :id         "003"
+                            :number     1234}
                            {:cell   "2"
                             :coords [0 1]
                             :id     "003"
@@ -118,18 +119,18 @@
                             :coords [0 3]
                             :id     "003"
                             :number 1234}]))
-    (is (= (parse "12.") [{:cell   "1"
-                           :coords [0 0]
-                           :id     "001"
-                           :number 12}
+    (is (= (parse-cells "12.") [{:cell "1"
+                           :coords     [0 0]
+                           :id         "001"
+                           :number     12}
                           {:cell   "2"
                            :coords [0 1]
                            :id     "001"
                            :number 12}]))
-    (is (= (parse "12.35") [{:cell   "1"
-                             :coords [0 0]
-                             :id     "001"
-                             :number 12}
+    (is (= (parse-cells "12.35") [{:cell "1"
+                             :coords     [0 0]
+                             :id         "001"
+                             :number     12}
                             {:cell   "2"
                              :coords [0 1]
                              :id     "001"
@@ -142,10 +143,10 @@
                              :coords [0 4]
                              :id     "034"
                              :number 35}]))
-    (is (= (parse "12.*") [{:cell   "1"
-                            :coords [0 0]
-                            :id     "001"
-                            :number 12}
+    (is (= (parse-cells "12.*") [{:cell "1"
+                            :coords     [0 0]
+                            :id         "001"
+                            :number     12}
                            {:cell   "2"
                             :coords [0 1]
                             :id     "001"
