@@ -61,9 +61,10 @@
         adj-cells (filter some? (map #(get numeric-by-cells %) adj-indexes))]
     (flatten adj-cells)))
 
-(defn get-numbers
-  [numeric-cells-by-id]
-  (map #(:number (first (get numeric-cells-by-id %))) (keys numeric-cells-by-id))
+(defn get-numbers-by-id
+  [cells]
+  (let [cells-by-id (group-by :id cells)]
+    (into {} (map (fn [id] [id (:number (first (get cells-by-id id)))]) (filter some? (keys cells-by-id)))))
   )
 
 (defn part1
@@ -73,30 +74,32 @@
         numeric-cells-by-coords (group-by :coords numeric-cells)
         symbolic-cells (filter #(nil? (:number %)) cells)
         adj-cells (flatten (map #(get-adj-numeric-cells numeric-cells-by-coords %) symbolic-cells))
-        numeric-cells-by-id (group-by :id adj-cells)
-        numbers (get-numbers numeric-cells-by-id)]
+        adj-cells-ids (set (map :id adj-cells))
+        numbers-by-id (get-numbers-by-id cells)
+        numbers (map #(get numbers-by-id %) adj-cells-ids)]
     (reduce + numbers))
   )
 
 (defn gear-ratios
-  [numeric-cells-by-coords gear-coords]
-  (map #(let [adj-cells (get-adj-numeric-cells numeric-cells-by-coords %)
-              adj-cells-by-id (group-by :id adj-cells)
-              numbers (get-numbers adj-cells-by-id)]
-          (if (> (count numbers) 1)
-            (apply * numbers)
-            0
-            ))
-       gear-coords)
+  [numbers-by-id numeric-cells gear-coords]
+  (let [numeric-cells-by-coords (group-by :coords numeric-cells)]
+    (map #(let [adj-cells (get-adj-numeric-cells numeric-cells-by-coords %)
+                adj-cells-ids (set (map :id adj-cells))
+                numbers (map (fn [id] (get numbers-by-id id)) adj-cells-ids)]
+            (if (> (count numbers) 1)
+              (apply * numbers)
+              0
+              ))
+         gear-coords))
   )
 
 (defn part2
   [input]
   (let [cells (parse-cells input)
         numeric-cells (filter #(some? (:number %)) cells)
-        numeric-cells-by-coords (group-by :coords numeric-cells)
         gear-cells (filter #(= "*" (str (:cell %))) cells)
-        gears-ratios (gear-ratios numeric-cells-by-coords gear-cells)]
+        numbers-by-id (get-numbers-by-id cells)
+        gears-ratios (gear-ratios numbers-by-id numeric-cells gear-cells)]
     (reduce + gears-ratios)
     )
   )
@@ -155,6 +158,12 @@
                                   :coords [0 3]
                                   :id     nil
                                   :number nil}]))
+    )
+  (testing "numbers-by-id"
+    (is (= (get-numbers-by-id (parse-cells "12")) {"001" 12}))
+    (is (= (get-numbers-by-id (parse-cells "12+")) {"001" 12}))
+    (is (= (get-numbers-by-id (parse-cells "12.34")) {"001" 12, "034" 34}))
+    (is (= (get-numbers-by-id (parse-cells "...\n12.")) {"101" 12}))
     )
   (testing "part1"
     (is (= (part1 ".+8.\n.12.\n.*6.") 26))
