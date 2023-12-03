@@ -11,25 +11,36 @@
   (re-matches #"\d" string)
   )
 
+(defn find-number-and-starting-index
+  [grid r-idx c-idx]
+  (let [row (nth grid r-idx)]
+    (loop [idx c-idx
+           s ""]
+      (if (or (< idx 0) (not (is-number? (nth row idx))))
+        [s (inc idx)]
+        (recur (dec idx) (str (nth row idx) s)))))
+  )
+
+(defn find-number-and-end-index
+  [grid r-idx c-idx]
+  (let [row (nth grid r-idx)
+        column-length (count row)]
+    (loop [idx (inc c-idx)
+           s ""]
+      (if (or (>= idx column-length) (not (is-number? (nth row idx))))
+        [s (dec idx)]
+        (recur (inc idx) (str s (nth row idx))))))
+  )
+
 (defn get-number-and-id
   [grid r-idx c-idx]
   (if (is-number? (nth (nth grid r-idx) c-idx))
-    (let [row (nth grid r-idx)
-          column-length (count row)
-          [pre pre-idx] (loop [idx c-idx
-                               s ""]
-                          (if (or (< idx 0) (not (is-number? (nth row idx))))
-                            [s (inc idx)]
-                            (recur (dec idx) (str (nth row idx) s))))
-          [post post-idx] (loop [idx (inc c-idx)
-                                 s ""]
-                            (if (or (>= idx column-length) (not (is-number? (nth row idx))))
-                              [s (dec idx)]
-                              (recur (inc idx) (str s (nth row idx)))))
-          value (str pre post)]
+    (let [[start start-idx] (find-number-and-starting-index grid r-idx c-idx)
+          [end end-idx] (find-number-and-end-index grid r-idx c-idx)
+          value (str start end)]
       (if (empty? value)
         nil
-        [(read-string value) (str r-idx pre-idx post-idx)]
+        [(read-string value) (str r-idx start-idx end-idx)]
         ))
     nil
     ))
@@ -38,19 +49,18 @@
   [input]
   (let [lines (vec (str/split-lines input))
         grid (mapv #(vec (str/split % #"")) lines)
-        schematic-cells (flatten (map-indexed
-                                   (fn [r-idx row]
-                                     (map-indexed
-                                       (fn [c-index cell]
-                                         (let [[number-value number-id] (get-number-and-id grid r-idx c-index)]
-                                           {:coords [r-idx c-index],
-                                            :cell   cell,
-                                            :id     number-id
-                                            :number number-value
-                                            }
-                                           )) row)) grid))
-        schematic-cells (filter #(not= "." (:cell %)) schematic-cells)]
-    schematic-cells
+        cells (flatten (map-indexed
+                         (fn [r-idx row]
+                           (map-indexed
+                             (fn [c-index cell]
+                               (let [[number-value number-id] (get-number-and-id grid r-idx c-index)]
+                                 {:coords [r-idx c-index],
+                                  :cell   cell,
+                                  :id     number-id
+                                  :number number-value}
+                                 )) row)) grid))
+        cells (filter #(not= "." (:cell %)) cells)]
+    cells
     ))
 
 (defn get-adj-numeric-cells
