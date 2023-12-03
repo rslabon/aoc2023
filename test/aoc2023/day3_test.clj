@@ -79,12 +79,12 @@
   )
 
 (defn gear-ratios
-  [numberic-by-coords gear-coords]
-  (map #(let [adj-coords (get-adj-numeric-cells numberic-by-coords %)
-              adj-by-id (group-by :id adj-coords)
-              adj-numbers (get-numbers adj-by-id)]
-          (if (> (count adj-numbers) 1)
-            (apply * adj-numbers)
+  [numeric-cells-by-coords gear-coords]
+  (map #(let [adj-cells (get-adj-numeric-cells numeric-cells-by-coords %)
+              adj-cells-by-id (group-by :id adj-cells)
+              numbers (get-numbers adj-cells-by-id)]
+          (if (> (count numbers) 1)
+            (apply * numbers)
             0
             ))
        gear-coords)
