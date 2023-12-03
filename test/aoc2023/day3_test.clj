@@ -39,16 +39,16 @@
   (let [lines (vec (str/split-lines input))
         grid (mapv #(vec (str/split % #"")) lines)
         schematic-cells (flatten (map-indexed
-                          (fn [r-idx row]
-                            (map-indexed
-                              (fn [c-index cell]
-                                (let [[number-value number-id] (get-number-and-id grid r-idx c-index)]
-                                  {:coords [r-idx c-index],
-                                   :cell   cell,
-                                   :id     number-id
-                                   :number number-value
-                                   }
-                                  )) row)) grid))
+                                   (fn [r-idx row]
+                                     (map-indexed
+                                       (fn [c-index cell]
+                                         (let [[number-value number-id] (get-number-and-id grid r-idx c-index)]
+                                           {:coords [r-idx c-index],
+                                            :cell   cell,
+                                            :id     number-id
+                                            :number number-value
+                                            }
+                                           )) row)) grid))
         schematic-cells (filter #(not= "." (:cell %)) schematic-cells)]
     schematic-cells
     ))
@@ -103,58 +103,58 @@
 
 (deftest day3-test
   (testing "parse-cells"
-    (is (= (parse-cells "1234") [{:cell "1"
-                            :coords     [0 0]
-                            :id         "003"
-                            :number     1234}
-                           {:cell   "2"
-                            :coords [0 1]
-                            :id     "003"
-                            :number 1234}
-                           {:cell   "3"
-                            :coords [0 2]
-                            :id     "003"
-                            :number 1234}
-                           {:cell   "4"
-                            :coords [0 3]
-                            :id     "003"
-                            :number 1234}]))
-    (is (= (parse-cells "12.") [{:cell "1"
-                           :coords     [0 0]
-                           :id         "001"
-                           :number     12}
-                          {:cell   "2"
-                           :coords [0 1]
-                           :id     "001"
-                           :number 12}]))
-    (is (= (parse-cells "12.35") [{:cell "1"
-                             :coords     [0 0]
-                             :id         "001"
-                             :number     12}
-                            {:cell   "2"
-                             :coords [0 1]
-                             :id     "001"
-                             :number 12}
-                            {:cell   "3"
-                             :coords [0 3]
-                             :id     "034"
-                             :number 35}
-                            {:cell   "5"
-                             :coords [0 4]
-                             :id     "034"
-                             :number 35}]))
-    (is (= (parse-cells "12.*") [{:cell "1"
-                            :coords     [0 0]
-                            :id         "001"
-                            :number     12}
-                           {:cell   "2"
-                            :coords [0 1]
-                            :id     "001"
-                            :number 12}
-                           {:cell   "*"
-                            :coords [0 3]
-                            :id     nil
-                            :number nil}]))
+    (is (= (parse-cells "1234") [{:cell   "1"
+                                  :coords [0 0]
+                                  :id     "003"
+                                  :number 1234}
+                                 {:cell   "2"
+                                  :coords [0 1]
+                                  :id     "003"
+                                  :number 1234}
+                                 {:cell   "3"
+                                  :coords [0 2]
+                                  :id     "003"
+                                  :number 1234}
+                                 {:cell   "4"
+                                  :coords [0 3]
+                                  :id     "003"
+                                  :number 1234}]))
+    (is (= (parse-cells "12.") [{:cell   "1"
+                                 :coords [0 0]
+                                 :id     "001"
+                                 :number 12}
+                                {:cell   "2"
+                                 :coords [0 1]
+                                 :id     "001"
+                                 :number 12}]))
+    (is (= (parse-cells "12.35") [{:cell   "1"
+                                   :coords [0 0]
+                                   :id     "001"
+                                   :number 12}
+                                  {:cell   "2"
+                                   :coords [0 1]
+                                   :id     "001"
+                                   :number 12}
+                                  {:cell   "3"
+                                   :coords [0 3]
+                                   :id     "034"
+                                   :number 35}
+                                  {:cell   "5"
+                                   :coords [0 4]
+                                   :id     "034"
+                                   :number 35}]))
+    (is (= (parse-cells "12.*") [{:cell   "1"
+                                  :coords [0 0]
+                                  :id     "001"
+                                  :number 12}
+                                 {:cell   "2"
+                                  :coords [0 1]
+                                  :id     "001"
+                                  :number 12}
+                                 {:cell   "*"
+                                  :coords [0 3]
+                                  :id     nil
+                                  :number nil}]))
     )
   (testing "part1"
     (is (= (part1 ".+8.\n.12.\n.*6.") 26))
