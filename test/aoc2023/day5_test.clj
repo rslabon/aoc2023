@@ -70,7 +70,8 @@
         result []
         result (if (< number n-start) (conj result [number (min (dec n-start) number-max)]) result)
         result (if (and (<= number n-max) true) (conj result [(+ m-start dx) (min (+ m-start dx-max) m-max)]) result)
-        result (if (> number-max n-max) (conj result [(+ number (max 0 (inc (- (min (+ m-start dx-max) m-max) (+ m-start dx))))) number-max]) result)
+        mapped-length (reduce + (map second (map (fn [[min max]] [min (inc (- max min))]) result)))
+        result (if (> number-max n-max) (conj result [(+ number mapped-length) number-max]) result)
         ]
     (if (or (and (< number n-start) (< number-max n-start)) (> number n-max))
       nil
@@ -81,10 +82,11 @@
 
 (defn map-to-category
   [mappings seed]
-  (let [converted (filter some? (map #(convert-mapping % seed) mappings))]
+  (let [converted (filter some? (map #(convert-mapping % seed) mappings))
+        _ (println converted)]
     (if (empty? converted)
       [seed]
-      (first converted)
+      (partition 2 (flatten converted))
       )
     )
   )
@@ -117,7 +119,6 @@
   [input]
   (let [almanac (parse-almanac-ver2 input)
         seeds (:seeds almanac)
-        seeds (:seeds almanac)
         seed-to-soil (map (fn [seed] (map-to-category (:seed-to-soil almanac) seed)) seeds)
         seed-to-soil (partition 2 (flatten seed-to-soil))
         soil-to-fertilizer (map (fn [seed] (map-to-category (:soil-to-fertilizer almanac) seed)) seed-to-soil)
@@ -133,7 +134,7 @@
         humidity-to-location (map (fn [seed] (map-to-category (:humidity-to-location almanac) seed)) temperature-to-humidity)
         humidity-to-location (partition 2 (flatten humidity-to-location))
         humidity (map first humidity-to-location)
-        _ (println humidity-to-location)
+        humidity (filter #(> % 0) humidity)
         ]
     (apply min humidity)
     )
@@ -169,41 +170,25 @@
   (testing "map-to-category"
     (is (= (convert-mapping [52 50 48] [79 1]) [[81 1]]))
     (is (= (convert-mapping [0 50 48] [50 1]) [[0 1]]))
-    ;(is (= (convert-mapping [0 50 48] [49 1]) nil))
     (is (= (convert-mapping [0 2 2] [2 2]) [[0 2]]))
     (is (= (convert-mapping [0 2 2] [2 4]) [[0 2] [4 2]]))
     (is (= (convert-mapping [0 2 2] [3 4]) [[1 1] [4 3]]))
     (is (= (convert-mapping [0 2 2] [0 4]) [[0 2] [0 2]]))
     (is (= (convert-mapping [0 2 2] [5 10]) nil))
+    (is (= (convert-mapping [0 2 2] [4 1]) nil))
+    (is (= (convert-mapping [0 2 2] [1 1]) nil))
     (is (= (convert-mapping [0 10 2] [5 3]) nil))
     (is (= (convert-mapping [0 1 1] [5 3]) nil))
     (is (= (convert-mapping [0 1 1] [1 1]) [[0 1]]))
     (is (= (convert-mapping [0 5 2] [0 10]) [[0 5] [0 2] [7 3]]))
-
-    ;(is (= (convert-mapping [0 2 2] [0 1]) nil))
-    ;(is (= (convert-mapping [0 2 2] [3 1]) [[1 1]]))
-    ;(is (= (convert-mapping [0 1 1] [0 1]) nil))
-    ;(is (= (convert-mapping [0 1 1] [1 1]) [[0 1]]))
-
-
-    ;  (is (= (convert-mapping [0 50 2] 50) 0))
-    ;  (is (= (convert-mapping [0 50 2] 51) 1))
-    ;  (is (= (convert-mapping [0 50 2] 52) nil))
-    ;  (is (= (convert-mapping [52 50 48] 1) nil))
-    ;  (is (= (convert-mapping [50 98 2] 98) 50))
-    ;  (is (= (convert-mapping [50 98 2] 99) 51))
-    ;  (is (= (convert-mapping [50 98 2] 100) nil))
-    ;  (is (= (convert-mapping [50 98 2] 97) nil))
-    ;  (is (= (convert-mapping [0 1 1] 1) 0))
-    ;  (is (= (convert-mapping [0 1 1] 0) nil))
-    ;  (is (= (convert-mapping [0 1 1] 2) nil))
-    ;  (is (= (convert-mapping [1 0 1] 0) 1))
-    ;  (is (= (convert-mapping [1 0 1] 1) nil))
-    ;  (is (= (convert-mapping [1 0 2] 0) 1))
-    ;  (is (= (convert-mapping [1 0 2] 1) 2))
-    ;  (is (= (convert-mapping [1 0 2] 2) nil))
-    ;  (is (= (convert-mapping [2023441036 2044296880 396074363] 2044296880) 2023441036))
-    ;  (is (= (convert-mapping [2023441036 2044296880 396074363] 2440371242) 2419515398))
+    (is (= (convert-mapping [0 5 1] [0 10]) [[0 5] [0 1] [6 4]]))
+    (is (= (convert-mapping [0 5 1] [0 5]) nil))
+    (is (= (convert-mapping [0 5 1] [6 1]) nil))
+    (is (= (convert-mapping [0 5 1] [5 1]) [[0 1]]))
+    (is (= (convert-mapping [0 2 2] [0 1]) nil))
+    (is (= (convert-mapping [0 2 2] [3 1]) [[1 1]]))
+    (is (= (convert-mapping [0 1 1] [0 1]) nil))
+    (is (= (convert-mapping [0 1 1] [1 1]) [[0 1]]))
     (is (= (map-to-category (:seed-to-soil example-almanac) [79 1]) [[81 1]]))
     (is (= (map-to-category (:seed-to-soil example-almanac) [14 1]) [[14 1]]))
     (is (= (map-to-category (:seed-to-soil example-almanac) [55 1]) [[57 1]]))
@@ -216,7 +201,6 @@
     )
   (testing "part2"
     (is (= (part2 example-input) 46))
-    (is (= (part2 puzzle-input) 0))
-    ;zle 97758362
+    (is (= (part2 puzzle-input) 2008785))
     )
   )
