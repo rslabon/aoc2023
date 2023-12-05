@@ -62,25 +62,26 @@
 
 (defn convert-mapping
   [[m-start n-start n-length] [number length]]
-    (let [n-max (+ n-start (dec n-length))
-          number-max (+ number (dec length))
-          dx (max 0 (- number n-start))
-          dx-max (max 0 (- number-max n-start))
-          m-max (+ m-start (dec n-length))
-          result []
-          result (if (< number n-start) (conj result [number (min (dec n-start) number-max)])  result)
-          result (if (and (<= number n-max) true) (conj result [(+ m-start dx) (min (+ m-start dx-max) m-max)])  result)
-          result (if (> number-max n-max) (conj result [(+ number (max 0 (inc (- (min (+ m-start dx-max) m-max) (+ m-start dx))))) number-max]) result)
-          _ (println result)
-          ]
+  (let [n-max (+ n-start (dec n-length))
+        number-max (+ number (dec length))
+        dx (max 0 (- number n-start))
+        dx-max (max 0 (- number-max n-start))
+        m-max (+ m-start (dec n-length))
+        result []
+        result (if (< number n-start) (conj result [number (min (dec n-start) number-max)]) result)
+        result (if (and (<= number n-max) true) (conj result [(+ m-start dx) (min (+ m-start dx-max) m-max)]) result)
+        result (if (> number-max n-max) (conj result [(+ number (max 0 (inc (- (min (+ m-start dx-max) m-max) (+ m-start dx))))) number-max]) result)
+        ]
+    (if (or (and (< number n-start) (< number-max n-start)) (> number n-max))
+      nil
       (map (fn [[min max]] [min (inc (- max min))]) result)
       )
+    )
   )
 
 (defn map-to-category
   [mappings seed]
-  (let [converted (filter some? (map #(convert-mapping % seed) mappings))
-        _ (println "sjdfhskdjfsfsd" converted)]
+  (let [converted (filter some? (map #(convert-mapping % seed) mappings))]
     (if (empty? converted)
       [seed]
       (first converted)
@@ -116,15 +117,25 @@
   [input]
   (let [almanac (parse-almanac-ver2 input)
         seeds (:seeds almanac)
+        seeds (:seeds almanac)
         seed-to-soil (map (fn [seed] (map-to-category (:seed-to-soil almanac) seed)) seeds)
+        seed-to-soil (partition 2 (flatten seed-to-soil))
         soil-to-fertilizer (map (fn [seed] (map-to-category (:soil-to-fertilizer almanac) seed)) seed-to-soil)
+        soil-to-fertilizer (partition 2 (flatten soil-to-fertilizer))
         fertilizer-to-water (map (fn [seed] (map-to-category (:fertilizer-to-water almanac) seed)) soil-to-fertilizer)
-        water-to-light (mapv (fn [seed] (map-to-category (:water-to-light almanac) seed)) fertilizer-to-water)
+        fertilizer-to-water (partition 2 (flatten fertilizer-to-water))
+        water-to-light (map (fn [seed] (map-to-category (:water-to-light almanac) seed)) fertilizer-to-water)
+        water-to-light (partition 2 (flatten water-to-light))
         light-to-temperature (map (fn [seed] (map-to-category (:light-to-temperature almanac) seed)) water-to-light)
+        light-to-temperature (partition 2 (flatten light-to-temperature))
         temperature-to-humidity (map (fn [seed] (map-to-category (:temperature-to-humidity almanac) seed)) light-to-temperature)
-        humidity-to-location (mapv (fn [seed] (map-to-category (:humidity-to-location almanac) seed)) temperature-to-humidity)
+        temperature-to-humidity (partition 2 (flatten temperature-to-humidity))
+        humidity-to-location (map (fn [seed] (map-to-category (:humidity-to-location almanac) seed)) temperature-to-humidity)
+        humidity-to-location (partition 2 (flatten humidity-to-location))
+        humidity (map first humidity-to-location)
+        _ (println humidity-to-location)
         ]
-    (apply min humidity-to-location)
+    (apply min humidity)
     )
   )
 
@@ -163,8 +174,11 @@
     (is (= (convert-mapping [0 2 2] [2 4]) [[0 2] [4 2]]))
     (is (= (convert-mapping [0 2 2] [3 4]) [[1 1] [4 3]]))
     (is (= (convert-mapping [0 2 2] [0 4]) [[0 2] [0 2]]))
-    (is (= (convert-mapping [0 2 2] [5 10]) [[5 10]]))
-    (is (= (convert-mapping [0 10 2] [5 3]) [[5 3]]))
+    (is (= (convert-mapping [0 2 2] [5 10]) nil))
+    (is (= (convert-mapping [0 10 2] [5 3]) nil))
+    (is (= (convert-mapping [0 1 1] [5 3]) nil))
+    (is (= (convert-mapping [0 1 1] [1 1]) [[0 1]]))
+    (is (= (convert-mapping [0 5 2] [0 10]) [[0 5] [0 2] [7 3]]))
 
     ;(is (= (convert-mapping [0 2 2] [0 1]) nil))
     ;(is (= (convert-mapping [0 2 2] [3 1]) [[1 1]]))
@@ -190,18 +204,19 @@
     ;  (is (= (convert-mapping [1 0 2] 2) nil))
     ;  (is (= (convert-mapping [2023441036 2044296880 396074363] 2044296880) 2023441036))
     ;  (is (= (convert-mapping [2023441036 2044296880 396074363] 2440371242) 2419515398))
-    ;(is (= (map-to-category (:seed-to-soil example-almanac) [79 1]) [[81 1]]))
-    ;(is (= (map-to-category (:seed-to-soil example-almanac) [14 1]) [[14 1]]))
-    ;(is (= (map-to-category (:seed-to-soil example-almanac) [55 1]) [[57 1]]))
-    ;(is (= (map-to-category (:seed-to-soil example-almanac) [13 1]) [[13 1]]))
-    ;(is (= (map-to-category (:soil-to-fertilizer example-almanac) [81 1]) [[81 1]]))
+    (is (= (map-to-category (:seed-to-soil example-almanac) [79 1]) [[81 1]]))
+    (is (= (map-to-category (:seed-to-soil example-almanac) [14 1]) [[14 1]]))
+    (is (= (map-to-category (:seed-to-soil example-almanac) [55 1]) [[57 1]]))
+    (is (= (map-to-category (:seed-to-soil example-almanac) [13 1]) [[13 1]]))
+    (is (= (map-to-category (:soil-to-fertilizer example-almanac) [81 1]) [[81 1]]))
     )
-  ;(testing "part1"
-  ;  (is (= (part1 example-input) 35))
-  ;  (is (= (part1 puzzle-input) 88151870))
-  ;  )
-  ;(testing "part2"
-  ;  (is (= (part2 example-input) 46))
-  ;  (is (= (part2 puzzle-input) 0))
-  ;  )
+  (testing "part1"
+    (is (= (part1 example-input) 35))
+    (is (= (part1 puzzle-input) 88151870))
+    )
+  (testing "part2"
+    (is (= (part2 example-input) 46))
+    (is (= (part2 puzzle-input) 0))
+    ;zle 97758362
+    )
   )
