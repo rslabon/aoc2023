@@ -71,8 +71,7 @@
         result (if (< number n-start) (conj result [number (min (dec n-start) number-max)]) result)
         result (if (and (<= number n-max) true) (conj result [(+ m-start dx) (min (+ m-start dx-max) m-max)]) result)
         mapped-length (reduce + (map second (map (fn [[min max]] [min (inc (- max min))]) result)))
-        result (if (> number-max n-max) (conj result [(+ number mapped-length) number-max]) result)
-        ]
+        result (if (> number-max n-max) (conj result [(+ number mapped-length) number-max]) result)]
     (if (or (and (< number n-start) (< number-max n-start)) (> number n-max))
       nil
       (map (fn [[min max]] [min (inc (- max min))]) result)
@@ -82,8 +81,7 @@
 
 (defn map-to-category
   [mappings seed]
-  (let [converted (filter some? (map #(convert-mapping % seed) mappings))
-        _ (println converted)]
+  (let [converted (filter some? (map #(convert-mapping % seed) mappings))]
     (if (empty? converted)
       [seed]
       (partition 2 (flatten converted))
@@ -91,26 +89,24 @@
     )
   )
 
+(defn convert-into
+  [category seeds]
+  (let [mapping (map (fn [seed] (map-to-category category seed)) seeds)]
+    (partition 2 (flatten mapping))
+    ))
+
 (defn part1
   [input]
   (let [almanac (parse-almanac input)
         seeds (:seeds almanac)
-        seed-to-soil (map (fn [seed] (map-to-category (:seed-to-soil almanac) seed)) seeds)
-        seed-to-soil (partition 2 (flatten seed-to-soil))
-        soil-to-fertilizer (map (fn [seed] (map-to-category (:soil-to-fertilizer almanac) seed)) seed-to-soil)
-        soil-to-fertilizer (partition 2 (flatten soil-to-fertilizer))
-        fertilizer-to-water (map (fn [seed] (map-to-category (:fertilizer-to-water almanac) seed)) soil-to-fertilizer)
-        fertilizer-to-water (partition 2 (flatten fertilizer-to-water))
-        water-to-light (map (fn [seed] (map-to-category (:water-to-light almanac) seed)) fertilizer-to-water)
-        water-to-light (partition 2 (flatten water-to-light))
-        light-to-temperature (map (fn [seed] (map-to-category (:light-to-temperature almanac) seed)) water-to-light)
-        light-to-temperature (partition 2 (flatten light-to-temperature))
-        temperature-to-humidity (map (fn [seed] (map-to-category (:temperature-to-humidity almanac) seed)) light-to-temperature)
-        temperature-to-humidity (partition 2 (flatten temperature-to-humidity))
-        humidity-to-location (map (fn [seed] (map-to-category (:humidity-to-location almanac) seed)) temperature-to-humidity)
-        humidity-to-location (partition 2 (flatten humidity-to-location))
-        humidity (map first humidity-to-location)
-        ]
+        seed-to-soil (convert-into (:seed-to-soil almanac) seeds)
+        soil-to-fertilizer (convert-into (:soil-to-fertilizer almanac) seed-to-soil)
+        fertilizer-to-water (convert-into (:fertilizer-to-water almanac) soil-to-fertilizer)
+        water-to-light (convert-into (:water-to-light almanac) fertilizer-to-water)
+        light-to-temperature (convert-into (:light-to-temperature almanac) water-to-light)
+        temperature-to-humidity (convert-into (:temperature-to-humidity almanac) light-to-temperature)
+        humidity-to-location (convert-into (:humidity-to-location almanac) temperature-to-humidity)
+        humidity (map first humidity-to-location)]
     (apply min humidity)
     )
   )
@@ -119,23 +115,15 @@
   [input]
   (let [almanac (parse-almanac-ver2 input)
         seeds (:seeds almanac)
-        seed-to-soil (map (fn [seed] (map-to-category (:seed-to-soil almanac) seed)) seeds)
-        seed-to-soil (partition 2 (flatten seed-to-soil))
-        soil-to-fertilizer (map (fn [seed] (map-to-category (:soil-to-fertilizer almanac) seed)) seed-to-soil)
-        soil-to-fertilizer (partition 2 (flatten soil-to-fertilizer))
-        fertilizer-to-water (map (fn [seed] (map-to-category (:fertilizer-to-water almanac) seed)) soil-to-fertilizer)
-        fertilizer-to-water (partition 2 (flatten fertilizer-to-water))
-        water-to-light (map (fn [seed] (map-to-category (:water-to-light almanac) seed)) fertilizer-to-water)
-        water-to-light (partition 2 (flatten water-to-light))
-        light-to-temperature (map (fn [seed] (map-to-category (:light-to-temperature almanac) seed)) water-to-light)
-        light-to-temperature (partition 2 (flatten light-to-temperature))
-        temperature-to-humidity (map (fn [seed] (map-to-category (:temperature-to-humidity almanac) seed)) light-to-temperature)
-        temperature-to-humidity (partition 2 (flatten temperature-to-humidity))
-        humidity-to-location (map (fn [seed] (map-to-category (:humidity-to-location almanac) seed)) temperature-to-humidity)
-        humidity-to-location (partition 2 (flatten humidity-to-location))
+        seed-to-soil (convert-into (:seed-to-soil almanac) seeds)
+        soil-to-fertilizer (convert-into (:soil-to-fertilizer almanac) seed-to-soil)
+        fertilizer-to-water (convert-into (:fertilizer-to-water almanac) soil-to-fertilizer)
+        water-to-light (convert-into (:water-to-light almanac) fertilizer-to-water)
+        light-to-temperature (convert-into (:light-to-temperature almanac) water-to-light)
+        temperature-to-humidity (convert-into (:temperature-to-humidity almanac) light-to-temperature)
+        humidity-to-location (convert-into (:humidity-to-location almanac) temperature-to-humidity)
         humidity (map first humidity-to-location)
-        humidity (filter #(> % 0) humidity)
-        ]
+        humidity (filter #(> % 0) humidity)]
     (apply min humidity)
     )
   )
