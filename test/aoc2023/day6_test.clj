@@ -55,4 +55,8 @@
     (is (= (part1 example-input) 288))
     (is (= (part1 puzzle-input) 1731600))
     )
+  (testing "part2"
+    (is (= (part1 [[71530 940200]]) 71503))
+    (is (= (part1 [[50748685 242101716911252]]) 40087680))
+    )
   )
