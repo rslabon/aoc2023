@@ -59,22 +59,26 @@
     )
   )
 
+(defn interval-to-range
+  [[min max]]
+  [min (inc (- max min))]
+  )
 
 (defn convert-mapping
   [[m-start n-start n-length] [number length]]
   (let [n-max (+ n-start (dec n-length))
         number-max (+ number (dec length))
-        dx (max 0 (- number n-start))
-        dx-max (max 0 (- number-max n-start))
+        number-offset (max 0 (- number n-start))
+        number-max-offset (max 0 (- number-max n-start))
         m-max (+ m-start (dec n-length))
-        result []
-        result (if (< number n-start) (conj result [number (min (dec n-start) number-max)]) result)
-        result (if (and (<= number n-max) true) (conj result [(+ m-start dx) (min (+ m-start dx-max) m-max)]) result)
-        mapped-length (reduce + (map second (map (fn [[min max]] [min (inc (- max min))]) result)))
-        result (if (> number-max n-max) (conj result [(+ number mapped-length) number-max]) result)]
+        mappings []
+        mappings (if (< number n-start) (conj mappings [number (min (dec n-start) number-max)]) mappings)
+        mappings (if (<= number n-max) (conj mappings [(+ m-start number-offset) (min (+ m-start number-max-offset) m-max)]) mappings)
+        mapped-length (reduce + (map second (map interval-to-range mappings)))
+        mappings (if (> number-max n-max) (conj mappings [(+ number mapped-length) number-max]) mappings)]
     (if (or (and (< number n-start) (< number-max n-start)) (> number n-max))
       nil
-      (map (fn [[min max]] [min (inc (- max min))]) result)
+      (map interval-to-range mappings)
       )
     )
   )
