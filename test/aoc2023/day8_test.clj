@@ -71,12 +71,11 @@
 (defn gcd
   [a b] (.gcd (BigInteger/valueOf a) (BigInteger/valueOf b)))
 
-(defn lcm2
-  [a b] (/ (* a b) (gcd a b)))
-
 (defn lcm
-  [& varargs] (reduce lcm2 varargs)
+  ([a b] (/ (* a b) (gcd a b)))
+  ([a b c & varargs] (reduce lcm (concat [a b c] varargs)))
   )
+
 
 (defn part2
   [input]
