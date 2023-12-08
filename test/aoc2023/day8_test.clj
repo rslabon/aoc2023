@@ -16,14 +16,6 @@
     )
   )
 
-(defn parse-instructions-v2
-  [input]
-  (let [[first-line] (str/split input #"\n\n")
-        instructions (map #(condp = (str %) "R" :right "L" :left) (str/split first-line #""))]
-    instructions
-    )
-  )
-
 (defn parse-node
   [line]
   (let [[_ node left-node right-node] (re-matches #"(\w+)\s*=\s*\((\w+),\s*(\w+)\)" line)]
@@ -61,28 +53,20 @@
     ))
 
 (defn find-steps-to-z-nodes
-  [instructions instruction-index nodes node]
-  (loop [instruction-index instruction-index
+  [instructions nodes node]
+  (loop [instructions-to-process instructions
          steps 0
          [_ left-node right-node] node]
-    (let [current-instruction (nth instructions instruction-index)
+    (let [current-instruction (first instructions-to-process)
           next-node (condp = current-instruction
                       :left (get nodes left-node)
                       :right (get nodes right-node)
-                      )
-          next-instruction-index (mod (inc instruction-index) (count instructions))]
+                      )]
       (cond
         (str/ends-with? (first next-node) "Z") (inc steps)
-        :else (recur next-instruction-index (inc steps) next-node)
+        :else (recur (rest instructions-to-process) (inc steps) next-node)
         )
       )))
-
-(defn ending-nodes?
-  [nodes]
-  (let [z-nodes (filter (fn [[node left right]] (str/ends-with? node "Z")) nodes)]
-    (= (count nodes) (count z-nodes))
-    )
-  )
 
 (defn gcd
   [a b] (.gcd (BigInteger/valueOf a) (BigInteger/valueOf b)))
@@ -96,11 +80,11 @@
 
 (defn part2
   [input]
-  (let [instructions (parse-instructions-v2 input)
+  (let [instructions (parse-instructions input)
         nodes (parse-nodes input)
         starting-nodes (filter #(str/ends-with? % "A") (keys nodes))
         starting-nodes (map #(get nodes %) starting-nodes)
-        z-nodes-steps (map #(find-steps-to-z-nodes instructions 0 nodes %) starting-nodes)]
+        z-nodes-steps (map #(find-steps-to-z-nodes instructions nodes %) starting-nodes)]
     (apply lcm z-nodes-steps)
     ))
 
@@ -121,10 +105,10 @@
     (is (= (part1 example-input2) 6))
     (is (= (part1 puzzle-input) 20659))
     )
-  (testing "part1"
+  (testing "part2"
     (is (= (lcm 21 6) 42))
-    (is (= (find-steps-to-z-nodes [:left :right] 0 (parse-nodes example-input3) ["1AA" "11B" "XXX"]) 2))
-    (is (= (find-steps-to-z-nodes [:left :right] 1 (parse-nodes example-input3) ["2AA" "2BB" "22B"]) 3))
+    (is (= (find-steps-to-z-nodes (parse-instructions example-input3) (parse-nodes example-input3) ["1AA" "11B" "XXX"]) 2))
+    (is (= (find-steps-to-z-nodes (parse-instructions example-input3) (parse-nodes example-input3) ["2AA" "22B" "22B"]) 3))
     (is (= (part2 example-input3) 6))
     (is (= (part2 puzzle-input) 15690466351717))
     )
