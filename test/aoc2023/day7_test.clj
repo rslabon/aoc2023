@@ -32,10 +32,10 @@
         number-of-jokers (count (get cards-group "J" []))]
     (if (= number-of-jokers (count cards))
       :five-of-a-kind
-      (let [counts (sort (map count (vals (group-by identity (filter #(not= (str %) "J") cards)))))
-            counts (reverse counts)
-            max (first counts)
-            others (rest counts)
+      (let [cards-without-jokers (remove #(= (str %) "J") cards)
+            sorted-cards-count-by-kind (sort > (map count (vals (group-by identity cards-without-jokers))))
+            max (first sorted-cards-count-by-kind)
+            others (rest sorted-cards-count-by-kind)
             counts (reverse (concat [(+ max number-of-jokers)] others))]
         (condp = counts
           [1 1 1 1 1] :high-card

@@ -12,12 +12,14 @@
   (let [[part1 part2] (str/split line #":")
         card-id (read-string (re-find #"\d+" part1))
         [winning-numbers my-numbers] (str/split part2 #"\|")
-        my-numbers (str/split my-numbers #"\s+")
-        my-numbers (filter not-empty (mapv str/trim my-numbers))
-        my-numbers (mapv read-string my-numbers)
-        winning-numbers (str/split winning-numbers #"\s+")
-        winning-numbers (filter not-empty (mapv str/trim winning-numbers))
-        winning-numbers (mapv read-string winning-numbers)]
+        my-numbers (->> (str/split my-numbers #"\s+")
+                        (mapv str/trim)
+                        (filter not-empty)
+                        (mapv read-string))
+        winning-numbers (->> (str/split winning-numbers #"\s+")
+                             (mapv str/trim)
+                             (filter not-empty)
+                             (mapv read-string))]
     {:card card-id, :my-numbers my-numbers, :winning-numbers winning-numbers}
     )
   )
@@ -61,8 +63,8 @@
                    cards-by-id (group-by :card cards)
                    copy-cards (map #(first (get cards-by-id %)) copy-ids)
                    score (assoc {} card-id 1)
-                   copy-scores (map #(score-card-in-cards cards %) copy-cards)
-                   copy-scores (apply merge-with + copy-scores)
+                   copy-scores (->> (map #(score-card-in-cards cards %) copy-cards)
+                                    (apply merge-with +))
                    score (if (nil? copy-scores) score (merge-with + score copy-scores))]
                score
                )
@@ -80,8 +82,8 @@
 (defn part2
   [input]
   (let [cards (parse-cards input)
-        scores (map #(score-card-in-cards cards %) cards)
-        scores (apply merge-with + scores)]
+        scores (->> (map #(score-card-in-cards cards %) cards)
+                    (apply merge-with +))]
     (reduce + (vals scores))
     )
   )

@@ -9,9 +9,9 @@
 (defn parse-cube-line
   "parsing line like '3 blue, 4 red' into {\"blue\" 3, \"red\" 4}"
   [line]
-  (let [cubes (str/split line #",")
-        cubes (map #(str/split (str/trim %) #" ") cubes)
-        cubes (map (fn [[value color]] [color (read-string value)]) cubes)]
+  (let [cubes (->> (str/split line #",")
+                   (map #(str/split (str/trim %) #" "))
+                   (map (fn [[value color]] [color (read-string value)])))]
     (into {} cubes)
     )
   )
@@ -56,8 +56,8 @@
 (defn part1
   [input]
   (let [lines (str/split-lines input)
-        games (map parse-game lines)
-        games (filter has-valid-cubes? games)
+        games (->> (map parse-game lines)
+                   (filter has-valid-cubes?))
         ids (map :id games)]
     (reduce + ids)
     )

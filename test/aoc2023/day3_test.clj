@@ -45,22 +45,27 @@
     nil
     ))
 
+(defn grid-to-cells
+  [grid]
+  (flatten (map-indexed
+             (fn [r-idx row]
+               (map-indexed
+                 (fn [c-index cell]
+                   (let [[number-value number-id] (get-number-and-id grid r-idx c-index)]
+                     {:coords [r-idx c-index],
+                      :cell   cell,
+                      :id     number-id
+                      :number number-value}
+                     )) row)) grid))
+  )
+
 (defn parse-cells
   [input]
   (let [lines (vec (str/split-lines input))
         grid (mapv #(vec (str/split % #"")) lines)
-        cells (flatten (map-indexed
-                         (fn [r-idx row]
-                           (map-indexed
-                             (fn [c-index cell]
-                               (let [[number-value number-id] (get-number-and-id grid r-idx c-index)]
-                                 {:coords [r-idx c-index],
-                                  :cell   cell,
-                                  :id     number-id
-                                  :number number-value}
-                                 )) row)) grid))
-        cells (filter #(not= "." (:cell %)) cells)]
-    cells
+        cells (grid-to-cells grid)
+        cells-without-dot (remove #(= "." (:cell %)) cells)]
+    cells-without-dot
     ))
 
 (defn get-adj-numeric-cells

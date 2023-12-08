@@ -8,9 +8,10 @@
 
 (defn parse-category
   [categories index]
-  (let [category (nth categories index)
-        category (rest (str/split-lines category))
-        category (map #(map bigint (str/split % #" ")) category)]
+  (let [category (->> (nth categories index)
+                      (str/split-lines)
+                      (rest)
+                      (map #(map bigint (str/split % #" "))))]
     category
     )
   )
@@ -19,10 +20,10 @@
   [input]
   (let [parts (str/split input #"\n\n")
         [_ seeds] (str/split (first parts) #":")
-        seeds (str/trim seeds)
-        seeds (str/split seeds #" ")
-        seeds (map bigint seeds)
-        seeds (map (fn [seed] [seed 1]) seeds)
+        seeds (-> (str/trim seeds)
+                  (str/split #" "))
+        seeds (->> (map bigint seeds)
+                   (map (fn [seed] [seed 1])))
         categories (vec (rest parts))]
     {
      :seeds                   seeds,
@@ -41,10 +42,10 @@
   [input]
   (let [parts (str/split input #"\n\n")
         [_ seeds] (str/split (first parts) #":")
-        seeds (str/trim seeds)
-        seeds (str/split seeds #" ")
-        seeds (map bigint seeds)
-        seeds (partition 2 seeds)
+        seeds (-> (str/trim seeds)
+                  (str/split #" "))
+        seeds (->> (map bigint seeds)
+                   (partition 2))
         categories (vec (rest parts))]
     {
      :seeds                   seeds,

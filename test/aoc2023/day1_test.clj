@@ -17,8 +17,8 @@
 (defn parse-word-or-digit-last
   [line]
   (let [idx (apply max (map #(.lastIndexOf line %) (keys tokens)))
-        suffix (.substring line idx)
-        suffix (str/replace-first suffix (re-pattern (str/join "|" (keys tokens))) #(str (get tokens %)))
+        suffix (-> (.substring line idx)
+                   (str/replace-first (re-pattern (str/join "|" (keys tokens))) #(str (get tokens %))))
         prefix (.substring line 0 idx)
         ]
     (str prefix suffix)
