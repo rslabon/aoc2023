@@ -54,17 +54,17 @@
 
 (defn find-steps-to-z-nodes
   [instructions nodes node]
-  (loop [instructions-to-process instructions
+  (loop [instructions instructions
          steps 0
          [_ left-node right-node] node]
-    (let [current-instruction (first instructions-to-process)
+    (let [current-instruction (first instructions)
           next-node (condp = current-instruction
                       :left (get nodes left-node)
                       :right (get nodes right-node)
                       )]
-      (cond
-        (str/ends-with? (first next-node) "Z") (inc steps)
-        :else (recur (rest instructions-to-process) (inc steps) next-node)
+      (if (str/ends-with? (first next-node) "Z")
+        (inc steps)
+        (recur (rest instructions) (inc steps) next-node)
         )
       )))
 
