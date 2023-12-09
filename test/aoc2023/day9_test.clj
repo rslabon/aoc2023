@@ -25,10 +25,9 @@
     )
   )
 
-(defn extrapolate-diffs
+(defn extrapolate-diffs-forward
   [diffs]
   (let [extrapolated-diffs (vec (reverse diffs))]
-    ;(println extrapolated-diffs)
     (loop [result []
            idx 0]
       (if (>= idx (count diffs))
@@ -39,24 +38,49 @@
                    (let [bellow-diff (last result)
                          last-number-in-bellow (last bellow-diff)
                          last-number-in-current (last current-diff)
-                         current-diff (concat current-diff [(+ last-number-in-current last-number-in-bellow)])
-                         ;_ (println bellow-diff current-diff last-number-in-bellow last-number-in-current)
-                         ]
+                         current-diff (concat current-diff [(+ last-number-in-current last-number-in-bellow)])]
                      (conj result current-diff))
                    )
                  (inc idx)))
         )
       )
     )
+  )
 
+(defn extrapolate-diffs-backward
+  [diffs]
+  (let [extrapolated-diffs (vec (reverse diffs))]
+    (loop [result []
+           idx 0]
+      (if (>= idx (count diffs))
+        (reverse result)
+        (let [current-diff (nth extrapolated-diffs idx)]
+          (recur (if (= idx 0)
+                   (conj result (conj current-diff 0))
+                   (let [bellow-diff (last result)
+                         first-number-in-bellow (first bellow-diff)
+                         first-number-in-current (first current-diff)
+                         current-diff (concat [(- first-number-in-current first-number-in-bellow)] current-diff)]
+                     (conj result current-diff))
+                   )
+                 (inc idx)))
+        )
+      )
+    )
   )
 
 (defn predict-next-number
   [numbers]
   (let [diffs (-> (generate-diffs numbers)
-                  (extrapolate-diffs))]
-    ;(println diffs)
+                  (extrapolate-diffs-forward))]
     (last (first diffs)))
+  )
+
+(defn predict-previous-number
+  [numbers]
+  (let [diffs (-> (generate-diffs numbers)
+                  (extrapolate-diffs-backward))]
+    (first (first diffs)))
   )
 
 (defn parse
@@ -70,6 +94,14 @@
   (let [histories (parse input)
         next-numbers (map predict-next-number histories)]
     (reduce + next-numbers)
+    )
+  )
+
+(defn part2
+  [input]
+  (let [histories (parse input)
+        previous-numbers (map predict-previous-number histories)]
+    (reduce + previous-numbers)
     )
   )
 
@@ -98,18 +130,24 @@
                                               [0 0 0]]))
     )
   (testing "extrapolate-diffs"
-    (is (= (extrapolate-diffs [[0 3 6 9 12 15]
-                               [3 3 3 3 3]
-                               [0 0 0 0]]) [[0 3 6 9 12 15 18]
-                                            [3 3 3 3 3 3]
-                                            [0 0 0 0 0]]))
-    (is (= (extrapolate-diffs [[1 3 6 10 15 21]
-                               [2 3 4 5 6]
-                               [1 1 1 1]
-                               [0 0 0]]) [[1 3 6 10 15 21 28]
-                                          [2 3 4 5 6 7]
-                                          [1 1 1 1 1]
-                                          [0 0 0 0]]))
+    (is (= (extrapolate-diffs-forward [[0 3 6 9 12 15]
+                                       [3 3 3 3 3]
+                                       [0 0 0 0]]) [[0 3 6 9 12 15 18]
+                                                    [3 3 3 3 3 3]
+                                                    [0 0 0 0 0]]))
+    (is (= (extrapolate-diffs-forward [[1 3 6 10 15 21]
+                                       [2 3 4 5 6]
+                                       [1 1 1 1]
+                                       [0 0 0]]) [[1 3 6 10 15 21 28]
+                                                  [2 3 4 5 6 7]
+                                                  [1 1 1 1 1]
+                                                  [0 0 0 0]]))
+
+    (is (= (extrapolate-diffs-backward (generate-diffs [10 13 16 21 30 45])) [[5 10 13 16 21 30 45]
+                                                                              [5 3 3 5 9 15]
+                                                                              [-2 0 2 4 6]
+                                                                              [2 2 2 2]
+                                                                              [0 0 0]]))
     )
   (testing "predict-next-number"
     (is (= (predict-next-number [0 3 6 9 12 15]) 18))
@@ -119,8 +157,15 @@
     (is (= (predict-next-number [2 1]) 0))
     (is (= (predict-next-number [1 0]) -1))
     )
+  (testing "predict-previous-number"
+    (is (= (predict-previous-number [10 13 16 21 30 45]) 5))
+    )
   (testing "part1"
     (is (= (part1 example-input) 114))
     (is (= (part1 puzzle-input) 2043677056))
+    )
+  (testing "part2"
+    (is (= (part2 example-input) 2))
+    (is (= (part2 puzzle-input) 1062))
     )
   )
