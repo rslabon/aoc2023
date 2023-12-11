@@ -84,28 +84,28 @@
       )))
 
 (defn galaxy-distance
-  [input n g1 g2]
+  [input empty-galaxy-multiplier g1 g2]
   (let [[g1x g1y] (:coord g1)
         [g2x g2y] (:coord g2)
         g1dx (count-empty-galaxies-vertically input 0 (dec g1x))
-        g1dx (- (* n g1dx) g1dx)
+        g1dx (- (* empty-galaxy-multiplier g1dx) g1dx)
         g1dy (count-empty-galaxies-horizontally input 0 (dec g1y))
-        g1dy (- (* n g1dy) g1dy)
+        g1dy (- (* empty-galaxy-multiplier g1dy) g1dy)
         g2dx (count-empty-galaxies-vertically input 0 (dec g2x))
-        g2dx (- (* n g2dx) g2dx)
+        g2dx (- (* empty-galaxy-multiplier g2dx) g2dx)
         g2dy (count-empty-galaxies-horizontally input 0 (dec g2y))
-        g2dy (- (* n g2dy) g2dy)
+        g2dy (- (* empty-galaxy-multiplier g2dy) g2dy)
         d (manhattan-distance [(+ g1dx g1x) (+ g1dy g1y)] [(+ g2dx g2x) (+ g2dy g2y)])]
     d
     )
   )
 
 (defn part2
-  [input n]
+  [input empty-galaxy-multiplier]
   (let [nodes (parse-graph input)
         galaxies (remove #(= (:cell %) ".") nodes)
         pairs (for [g1 galaxies g2 galaxies :when (not= g1 g2)] [g1 g2])
-        distances (map (fn [[g1 g2]] (galaxy-distance input n g1 g2)) pairs)]
+        distances (map (fn [[g1 g2]] (galaxy-distance input empty-galaxy-multiplier g1 g2)) pairs)]
     distances (map bigint distances)
     (/ (apply + distances) 2)
     )
