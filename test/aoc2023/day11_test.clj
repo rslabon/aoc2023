@@ -65,6 +65,53 @@
     )
   )
 
+(def count-empty-galaxies-vertically
+  (memoize
+    (fn
+      [input from-inclusive to-inclusive]
+      (let [lines (str/split-lines input)
+            empty-indexes (filter some? (map-indexed (fn [idx line] (if (every? #(= (str %) ".") line) idx nil)) lines))
+            empty-indexes (filter #(and (>= % from-inclusive) (<= % to-inclusive)) empty-indexes)]
+        (count empty-indexes)
+        )
+      )))
+
+(def count-empty-galaxies-horizontally
+  (memoize
+    (fn
+      [input from to]
+      (count-empty-galaxies-vertically (-> input (rotate) (rotate) (rotate)) from to)
+      )))
+
+(defn galaxy-distance
+  [input n g1 g2]
+  (let [[g1x g1y] (:coord g1)
+        [g2x g2y] (:coord g2)
+        g1dx (count-empty-galaxies-vertically input 0 (dec g1x))
+        g1dx (- (* n g1dx) g1dx)
+        g1dy (count-empty-galaxies-horizontally input 0 (dec g1y))
+        g1dy (- (* n g1dy) g1dy)
+        g2dx (count-empty-galaxies-vertically input 0 (dec g2x))
+        g2dx (- (* n g2dx) g2dx)
+        g2dy (count-empty-galaxies-horizontally input 0 (dec g2y))
+        g2dy (- (* n g2dy) g2dy)
+        d (manhattan-distance [(+ g1dx g1x) (+ g1dy g1y)] [(+ g2dx g2x) (+ g2dy g2y)])]
+    d
+    )
+  )
+
+(defn part2
+  [input n]
+  (let [nodes (parse-graph input)
+        galaxies (remove #(= (:cell %) ".") nodes)
+        pairs (for [g1 galaxies g2 galaxies :when (not= g1 g2)] [g1 g2])
+        distances (map (fn [[g1 g2]] (galaxy-distance input n g1 g2)) pairs)]
+    distances (map bigint distances)
+    (/ (apply + distances) 2)
+    )
+  )
+
+
 (deftest day11-test
   (testing "rotate"
     (is (= (rotate "123\n456\n789") "369\n258\n147"))
@@ -79,5 +126,30 @@
   (testing "part1"
     (is (= (part1 example-input) 374))
     (is (= (part1 puzzle-input) 9556896))
+    )
+  (testing "count-empty-galaxies-vertically"
+    (is (= (count-empty-galaxies-vertically example-input 0 9) 2))
+    (is (= (count-empty-galaxies-vertically example-input 0 3) 1))
+    (is (= (count-empty-galaxies-vertically example-input 0 2) 0))
+    (is (= (count-empty-galaxies-vertically example-input 4 9) 1))
+    (is (= (count-empty-galaxies-vertically example-input 7 7) 1))
+    (is (= (count-empty-galaxies-vertically puzzle-input 0 139) 9))
+    (is (= (count-empty-galaxies-vertically puzzle-input 0 52) 0))
+    (is (= (count-empty-galaxies-vertically puzzle-input 0 53) 1))
+    (is (= (count-empty-galaxies-vertically puzzle-input 0 54) 2))
+    )
+  (testing "count-empty-galaxies-horizontally"
+    (is (= (count-empty-galaxies-horizontally example-input 0 9) 3))
+    (is (= (count-empty-galaxies-horizontally example-input 0 3) 1))
+    (is (= (count-empty-galaxies-horizontally example-input 0 6) 2))
+    (is (= (count-empty-galaxies-horizontally puzzle-input 0 139) 9))
+    (is (= (count-empty-galaxies-horizontally puzzle-input 0 20) 1))
+    )
+  (testing "part2"
+    (is (= (part2 example-input 2) 374))
+    (is (= (part2 puzzle-input 2) 9556896))
+    (is (= (part2 example-input 10) 1030))
+    (is (= (part2 example-input 100) 8410))
+    (is (= (part2 puzzle-input 1000000) 685038186836))
     )
   )
