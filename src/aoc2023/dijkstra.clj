@@ -55,34 +55,28 @@
      [dist prev]
      (let [u (first Q)
            [dist prev] (compute-dist-and-prev-of u dist prev neighbors-of edge-cost Q)
-           Q (sort-by #(get dist %) (rest Q))]
+           Q (time (sort-by #(get dist %) (rest Q)))]
        (recur source vertices neighbors-of edge-cost dist prev Q)
        )
      )
    )
   )
 
-(defn path-to
-  [target vertices neighbors-of edge-cost]
-  (let [[_ prev] (loop [sources vertices
-                        dist (assoc (infinite-distance vertices) (first vertices) 0)
-                        prev {}]
-                   (if (empty? sources)
-                     [dist prev]
-                     (let [source (first sources)
-                           [dist prev] (dijkstra source vertices neighbors-of edge-cost dist prev)]
-                       (recur (rest sources) dist prev)
-                       )
-                     )
-                   )]
-    (loop [v target
-           path []]
-      (if (nil? v)
-        (reverse path)
-        (let [parent (get prev v)]
-          (recur parent (conj path v))
-          )
+(defn make-path
+  [target prev]
+  (loop [v target
+         path []]
+    (if (nil? v)
+      (reverse path)
+      (let [parent (get prev v)]
+        (recur parent (conj path v))
         )
       )
+    ))
+
+(defn path-to
+  [source target vertices neighbors-of edge-cost]
+  (let [[_ prev] (dijkstra source vertices neighbors-of edge-cost)]
+    (make-path target prev)
     )
   )

@@ -4,7 +4,7 @@
 
 (def example-input "...#......\n.......#..\n#.........\n..........\n......#...\n.#........\n.........#\n..........\n.......#..\n#...#.....")
 (def expanded-example "....#........\n.........#...\n#............\n.............\n.............\n........#....\n.#...........\n............#\n.............\n.............\n.........#...\n#....#.......")
-
+(def puzzle-input (slurp "resources/day11.txt"))
 
 (defn rotate
   [s]
@@ -22,8 +22,7 @@
   (let [lines (str/split-lines input)
         width (count (first lines))
         empty-galaxy (str/join (repeat width "."))
-        lines (mapcat #(if (= % empty-galaxy) [% empty-galaxy] [%]) lines)
-        ]
+        lines (mapcat #(if (= % empty-galaxy) [% empty-galaxy] [%]) lines)]
     (str/join "\n" lines)
     )
   )
@@ -39,23 +38,30 @@
       (rotate))
   )
 
-(defn possible-adj
-  [i j max-i max-j]
-  (filter (fn [[a b]] (and (>= a 0) (>= b 0) (< a max-i) (< b max-j))) [[(dec i) j] [(inc i) j] [i (dec j)] [i (inc j)]])
-  )
-
 (defn parse-graph
   [input]
   (let [lines (str/split-lines input)
         grid (map #(str/split % #"") lines)
-        width (count (first grid))
-        height (count grid)
-        nodes (map-indexed (fn [i row]
-                                (map-indexed (fn [j cell] {:coord [i j] :cell cell :adj (possible-adj i j width height)}) row)
-                                ) grid)
-        _ (println nodes)
+        nodes (map-indexed
+                (fn [i row]
+                  (map-indexed (fn [j cell] {:coord [i j] :cell (str cell)}) row)
+                  ) grid)
         ]
-    nodes
+    (flatten nodes)
+    )
+  )
+
+(defn manhattan-distance
+  [[sx sy] [tx ty]]
+  (+ (abs (- sx tx)) (abs (- sy ty))))
+
+(defn part1
+  [input]
+  (let [nodes (parse-graph (expand-galaxies input))
+        galaxies (remove #(= (:cell %) ".") nodes)
+        pairs (for [g1 galaxies g2 galaxies :when (not= g1 g2)] [g1 g2])
+        distances (map (fn [[g1 g2]] (manhattan-distance (:coord g1) (:coord g2))) pairs)]
+    (/ (apply + distances) 2)
     )
   )
 
@@ -68,7 +74,10 @@
     (is (= (expand-galaxies example-input) expanded-example))
     )
   (testing "expand-galaxies"
-    (is (= (parse-graph "123\n567") {}))
+    (is (= (parse-graph "1") [{:coord [0 0], :cell "1"}]))
     )
-
+  (testing "part1"
+    (is (= (part1 example-input) 374))
+    (is (= (part1 puzzle-input) 9556896))
+    )
   )
