@@ -106,7 +106,6 @@
         galaxies (remove #(= (:cell %) ".") nodes)
         pairs (for [g1 galaxies g2 galaxies :when (not= g1 g2)] [g1 g2])
         distances (map (fn [[g1 g2]] (galaxy-distance input empty-galaxy-multiplier g1 g2)) pairs)]
-    distances (map bigint distances)
     (/ (apply + distances) 2)
     )
   )
