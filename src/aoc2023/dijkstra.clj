@@ -6,7 +6,7 @@
 
 (defn- compute-dist-and-prev-of
   [vertex dist prev neighbors-of edge-cost Q]
-  (loop [neighbors (filter #(.contains Q %) (neighbors-of vertex))
+  (loop [neighbors (filter #(contains? (set Q) %) (neighbors-of vertex))
          dist dist
          prev prev]
     (if (empty? neighbors)
