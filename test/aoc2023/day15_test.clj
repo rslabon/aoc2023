@@ -40,30 +40,35 @@
     )
   )
 
+(defn drop-len
+  [box label]
+  (let [lens (:lens box)
+        lens (remove #(= label (:label %)) lens)
+        box (assoc box :lens (vec lens))]
+    box)
+  )
+
+(defn put-len
+  [box label count]
+  (let [lens (:lens box)
+        lens (mapv #(if (= label (:label %)) (assoc % :count count) %) lens)
+        lens (if (every? #(not= label (:label %)) lens)
+               (conj lens (make-lens label count))
+               lens
+               )
+        box (assoc box :lens lens)]
+    box
+    ))
+
 (defn execute
   [command boxes-by-id]
   (let [[_ label n] (re-matches #"(\w+)[-|=](\d*)" command)
         box-id (hash-word label)
-        result (cond
-                 (str/includes? command "=") (let [box (get boxes-by-id box-id)
-                                                   lens (:lens box)
-                                                   lens (mapv #(if (= label (:label %)) (assoc % :count (read-string n)) %) lens)
-                                                   lens (if (every? #(not= label (:label %)) lens)
-                                                          (conj lens (make-lens label (read-string n)))
-                                                          lens
-                                                          )
-                                                   box (assoc box :lens lens)]
-                                               (assoc boxes-by-id (:id box) box)
-                                               )
-                 (str/includes? command "-") (let [box (get boxes-by-id box-id)
-                                                   lens (:lens box)
-                                                   lens (remove #(= label (:label %)) lens)
-                                                   box (assoc box :lens (vec lens))]
-                                               (assoc boxes-by-id (:id box) box)
-                                               )
-                 )
-        ]
-    result
+        box (get boxes-by-id box-id)]
+    (cond
+      (str/includes? command "=") (assoc boxes-by-id (:id box) (put-len box label (read-string n)))
+      (str/includes? command "-") (assoc boxes-by-id (:id box) (drop-len box label))
+      )
     ))
 
 (defn focusing-power
