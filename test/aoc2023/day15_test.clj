@@ -18,18 +18,106 @@
 (defn part1
   [line]
   (let [words (str/split line #",")
-        hashes (map hash-word words)
-        _ (println hashes)]
+        hashes (map hash-word words)]
     (apply + hashes)
+    )
+  )
+
+(defn make-lens
+  [label n] {:label label, :count n})
+
+(defn make-boxes
+  [] (map (fn [id] {:id id, :lens []}) (range 256)))
+
+(defn group-by-id
+  [boxes]
+  (reduce-kv (fn [m k v] (assoc m k (first v))) {} (group-by :id boxes)))
+
+(defn with-lens-only
+  [boxes-by-id]
+  (let [boxes (filter #(pos? (count (:lens %))) (vals boxes-by-id))]
+    (group-by-id boxes)
+    )
+  )
+
+(defn execute
+  [command boxes-by-id]
+  (let [[_ label n] (re-matches #"(\w+)[-|=](\d*)" command)
+        box-id (hash-word label)
+        result (cond
+                 (str/includes? command "=") (let [box (get boxes-by-id box-id)
+                                                   lens (:lens box)
+                                                   lens (mapv #(if (= label (:label %)) (assoc % :count (read-string n)) %) lens)
+                                                   lens (if (every? #(not= label (:label %)) lens)
+                                                          (conj lens (make-lens label (read-string n)))
+                                                          lens
+                                                          )
+                                                   box (assoc box :lens lens)]
+                                               (assoc boxes-by-id (:id box) box)
+                                               )
+                 (str/includes? command "-") (let [box (get boxes-by-id box-id)
+                                                   lens (:lens box)
+                                                   lens (remove #(= label (:label %)) lens)
+                                                   box (assoc box :lens (vec lens))]
+                                               (assoc boxes-by-id (:id box) box)
+                                               )
+                 )
+        ]
+    result
+    ))
+
+(defn focusing-power
+  [boxes-by-id]
+  (let [boxes (vals (with-lens-only boxes-by-id))]
+    (loop [boxes boxes
+           power 0]
+      (if (empty? boxes)
+        power
+        (let [box (first boxes)
+              box-id (:id box)
+              lens (:lens box)
+              lens-power (map-indexed (fn [idx len] (* (inc box-id) (inc idx) (:count len))) lens)
+              total-lens-power (apply + lens-power)]
+          (recur (rest boxes) (+ power total-lens-power))
+          )
+        )
+      )
+    )
+  )
+
+(defn part2
+  [input]
+  (let [boxes (make-boxes)
+        boxes-by-id (group-by-id boxes)
+        init-seq (str/split input #",")
+        boxes-by-id (reduce (fn [boxes-by-id command] (execute command boxes-by-id)) boxes-by-id init-seq)]
+    (focusing-power boxes-by-id)
     )
   )
 
 
 (deftest day15-test
-  (testing "day15"
-    (is (= (hash-letter 0 \H) 200))
-    (is (= (hash-letter 200 \A) 153))
-    (is (= (hash-word "HASH") 52))
-    (is (= (part1 example-input) 1320))
-    (is (= (part1 puzzle-input) 512950))
-    ))
+  (let [boxes (make-boxes)
+        boxes-by-id (reduce-kv (fn [m k v] (assoc m k (first v))) {} (group-by :id boxes))]
+    (testing "day15"
+      (is (= (hash-letter 0 \H) 200))
+      (is (= (hash-letter 200 \A) 153))
+      (is (= (hash-word "HASH") 52))
+      (is (= (part1 example-input) 1320))
+      (is (= (part1 puzzle-input) 512950))
+      (is (= (get (execute "rn=1" boxes-by-id) 0) {:id 0 :lens [{:count 1 :label "rn"}]}))
+      (is (= (get (->> boxes-by-id
+                       (execute "rn=1")
+                       (execute "cm-")
+                       ) 0) {:id 0 :lens [{:count 1 :label "rn"}]}))
+      (is (= (with-lens-only (->> boxes-by-id
+                                  (execute "rn=1")
+                                  (execute "cm-")
+                                  (execute "qp=3")
+                                  )) {0 {:id 0 :lens [{:count 1
+                                                       :label "rn"}]}
+                                      1 {:id 1 :lens [{:count 3
+                                                       :label "qp"}]}}))
+      (is (= (part2 example-input) 145))
+      (is (= (part2 puzzle-input) 247153))
+      )))
