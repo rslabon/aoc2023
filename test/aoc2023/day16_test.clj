@@ -122,17 +122,15 @@
   )
 
 (defn count-energize
-  [beam cells-by-position width height]
+  [beam cells-by-position]
   (loop [beams (set [beam])
          energized-positions (set [])
-         n 30]
+         n 100]
     (let [new-beams (mapcat #(move-beam % cells-by-position) beams)
           new-beams (set/difference (set new-beams) beams)
           new-beams-position (set (map :position new-beams))]
       (if (= 0 n)
-        (do
-          ;(print-positions energized-positions width height)
-          (count energized-positions))
+        (count energized-positions)
         (recur new-beams (into energized-positions new-beams-position) (if (set/subset? new-beams-position energized-positions) (dec n) n))
         )
       )
@@ -140,14 +138,11 @@
 (defn part1
   [input]
   (let [cells (parse-cells input)
-        lines (str/split-lines input)
-        height (count lines)
-        width (count (first lines))
         cells-by-position (group-by :position cells)
         cells-by-position (reduce-kv (fn [m k v] (assoc m k (first v))) {} cells-by-position)
         beam (make-beam :right 0 -1)
         ]
-    (count-energize beam cells-by-position width height)
+    (count-energize beam cells-by-position)
     )
   )
 
@@ -166,10 +161,9 @@
         all-beams (concat left-side-beams right-side-beams up-side-beams down-side-beams)
         all-beams-count (count all-beams)
         energized (map-indexed
-                    (fn [idx beam] (let [result (count-energize beam cells-by-position width height)
+                    (fn [idx beam] (let [result (count-energize beam cells-by-position)
                                          _ (println "DONE " (inc idx) "/" all-beams-count)]
                                      result)) all-beams)
-        ;_ (println energized)
         ]
     (apply max energized)
     ))
