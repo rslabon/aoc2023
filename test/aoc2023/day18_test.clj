@@ -69,10 +69,10 @@
   [point visited-points x-min x-max y-min y-max]
   (let [next-moves (move point)
         next-moves (set (filter (fn [[x y]] (and (>= x x-min) (>= y y-min) (<= x x-max) (<= y y-max))) next-moves))
-        possible-moves (set/difference next-moves visited-points)]
-    (if (or (empty? possible-moves) (contains? visited-points point))
+        new-moves (set/difference next-moves visited-points)]
+    (if (or (empty? new-moves) (contains? visited-points point))
       (conj visited-points point)
-      (reduce (fn [acc v] (travel v acc x-min x-max y-min y-max)) (conj visited-points point) possible-moves)
+      (reduce (fn [acc v] (travel v acc x-min x-max y-min y-max)) (conj visited-points point) new-moves)
       )
     )
   )
@@ -86,14 +86,14 @@
         points (set points)
         total-points-count (* (inc (- x-max x-min)) (inc (- y-max y-min)))
         visited-points points
-        left (map (fn [i] [i y-min]) (range x-min (inc x-max)))
-        visited-points (reduce (fn [acc v] (travel v acc x-min x-max y-min y-max)) visited-points left)
-        right (map (fn [i] [i y-max]) (range x-min (inc x-max)))
-        visited-points (reduce (fn [acc v] (travel v acc x-min x-max y-min y-max)) visited-points right)
-        up (map (fn [i] [x-min i]) (range y-min (inc y-max)))
-        visited-points (reduce (fn [acc v] (travel v acc x-min x-max y-min y-max)) visited-points up)
-        down (map (fn [i] [x-max i]) (range y-min (inc y-max)))
-        visited-points (reduce (fn [acc v] (travel v acc x-min x-max y-min y-max)) visited-points down)
+        left-side-points (map (fn [i] [i y-min]) (range x-min (inc x-max)))
+        visited-points (reduce (fn [acc point] (travel point acc x-min x-max y-min y-max)) visited-points left-side-points)
+        right-side-points (map (fn [i] [i y-max]) (range x-min (inc x-max)))
+        visited-points (reduce (fn [acc point] (travel point acc x-min x-max y-min y-max)) visited-points right-side-points)
+        up-side-points (map (fn [i] [x-min i]) (range y-min (inc y-max)))
+        visited-points (reduce (fn [acc point] (travel point acc x-min x-max y-min y-max)) visited-points up-side-points)
+        down-side-points (map (fn [i] [x-max i]) (range y-min (inc y-max)))
+        visited-points (reduce (fn [acc point] (travel point acc x-min x-max y-min y-max)) visited-points down-side-points)
         empty-space-outside (set/difference visited-points points)
         inside-count (- total-points-count (count empty-space-outside))]
     inside-count
@@ -132,10 +132,10 @@
     (is (= (dig [0 1] :left 1) [[0 0]]))
     (is (= (part1 example-input) 62))
     (is (= (count-points-inside [[1 1] [1 2] [1 3]
-                                 [2 1]       [2 3]
+                                 [2 1] [2 3]
                                  [3 1] [3 2] [3 3]
                                  ]) 9))
-    (is (= (count-points-inside [[1 1]       [1 3]
+    (is (= (count-points-inside [[1 1] [1 3]
                                  [2 1] [2 2] [2 3]
                                  [3 1] [3 2] [3 3]
                                  ]) 8))
