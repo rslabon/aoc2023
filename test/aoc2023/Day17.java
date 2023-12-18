@@ -1,76 +1,68 @@
 package aoc2023;
 
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 enum Direction {
     LEFT {
         @Override
-        boolean isNegative(Direction other) {
-            return other == RIGHT;
+        Set<Direction> turn() {
+            return Set.of(UP, DOWN);
         }
-    }, RIGHT {
+    },
+    RIGHT {
         @Override
-        boolean isNegative(Direction other) {
-            return other == LEFT;
+        Set<Direction> turn() {
+            return Set.of(UP, DOWN);
         }
-    }, UP {
+    },
+    UP {
         @Override
-        boolean isNegative(Direction other) {
-            return other == DOWN;
+        Set<Direction> turn() {
+            return Set.of(LEFT, RIGHT);
         }
-    }, DOWN {
+    },
+    DOWN {
         @Override
-        boolean isNegative(Direction other) {
-            return other == UP;
+        Set<Direction> turn() {
+            return Set.of(LEFT, RIGHT);
         }
     };
 
-    abstract boolean isNegative(Direction other);
+    abstract Set<Direction> turn();
 }
 
 record Move(Position p, Direction d, int steps) {
-    List<Move> next(int minSteps, int maxSteps) {
-        return gen(minSteps)
-                .stream()
-                .filter(m -> !d.isNegative(m.d))
-                .filter(m -> m.steps < maxSteps)
-                .toList();
+    Set<Move> next(int minSteps, int maxSteps) {
+        if (steps > maxSteps) {
+            return Collections.emptySet();
+        }
+        Set<Move> moves = new HashSet<>();
+        if (steps < maxSteps) {
+            moves.add(go(d));
+        }
+        if (steps >= minSteps) {
+            for (Direction t : d.turn()) {
+                moves.add(go(t));
+            }
+        }
+        return moves;
     }
 
-    private Set<Move> gen(int minSteps) {
-        Set<Move> result = new HashSet<>();
-        result.addAll(IntStream.range(1, minSteps + 1).mapToObj(i -> go(Direction.LEFT, i)).collect(Collectors.toSet()));
-        result.addAll(IntStream.range(1, minSteps + 1).mapToObj(i -> go(Direction.RIGHT, i)).collect(Collectors.toSet()));
-        result.addAll(IntStream.range(1, minSteps + 1).mapToObj(i -> go(Direction.UP, i)).collect(Collectors.toSet()));
-        result.addAll(IntStream.range(1, minSteps + 1).mapToObj(i -> go(Direction.DOWN, i)).collect(Collectors.toSet()));
-        return result;
+    public Move go(Direction d) {
+        return new Move(p.go(d), d, this.d == d ? this.steps + 1 : 1);
     }
-
-    public Move go(Direction d, int steps) {
-        return new Move(p.go(d, steps), d, this.d == d ? this.steps + steps : 1);
-    }
-
-//    private List<Move> singleNext() {
-//        return Stream.of(
-//                        new Move(p.go(Direction.RIGHT), Direction.RIGHT, d == Direction.RIGHT ? steps + 1 : 1),
-//                        new Move(p.go(Direction.LEFT), Direction.LEFT, d == Direction.LEFT ? steps + 1 : 1),
-//                        new Move(p.go(Direction.UP), Direction.UP, d == Direction.UP ? steps + 1 : 1),
-//                        new Move(p.go(Direction.DOWN), Direction.DOWN, d == Direction.DOWN ? steps + 1 : 1))
-//                .filter(m -> !d.isNegative(m.d)) //cannot reverse
-//                .toList();
-//    }
 }
 
 record Position(int x, int y) {
-    Position go(Direction d, int steps) {
+    Position go(Direction d) {
         return switch (d) {
-            case LEFT -> new Position(x, y - steps);
-            case RIGHT -> new Position(x, y + steps);
-            case UP -> new Position(x - steps, y);
-            case DOWN -> new Position(x + steps, y);
+            case LEFT -> new Position(x, y - 1);
+            case RIGHT -> new Position(x, y + 1);
+            case UP -> new Position(x - 1, y);
+            case DOWN -> new Position(x + 1, y);
         };
     }
 }
@@ -115,12 +107,11 @@ class HeatMap {
     int width = 0;
     int height = 0;
 
-    public CityBlock newCityBlock(int heat, int x, int y) {
+    public void newCityBlock(int heat, int x, int y) {
         CityBlock cityBlock = new CityBlock(heat, new Position(x, y));
         cityBlocks.put(cityBlock.p, cityBlock);
         width = Math.max(width, y + 1);
         height = Math.max(height, x + 1);
-        return cityBlock;
     }
 
     public CityBlock getCityBlock(int x, int y) {
@@ -149,36 +140,35 @@ class HeatMap {
         q.add(m2);
         while (!q.isEmpty()) {
             Move current = q.poll();
-            if (current.steps() > maxSteps || current.steps() < minSteps) {
-                continue;
-            }
             for (Move next : current.next(minSteps, maxSteps)) {
-//                if ((current.d() != next.d() && next.steps() < minSteps) || next.steps() > maxSteps) {
-//                    continue;
-//                }
+                if (next.steps() > maxSteps) {
+                    continue;
+                }
                 Position nextPosition = next.p();
                 if (!inBounds(nextPosition)) { //out of grid
                     continue;
                 }
                 int alt = dist.getOrDefault(current, Integer.MAX_VALUE) + getCityBlock(nextPosition.x(), nextPosition.y()).heat;
                 if (alt < dist.getOrDefault(next, Integer.MAX_VALUE)) {
+                    if (next.p().equals(end) && next.steps() < minSteps) {
+                        //check only moves with min steps
+                        continue;
+                    }
                     dist.put(next, alt);
                     prev.put(next, current);
                     q.remove(next);
+                    q.add(next);
+                } else if (next.steps() >= minSteps) {
                     q.add(next);
                 }
             }
         }
         List<Move> endMoves = dist.keySet().stream().filter(m -> m.p().equals(end)).toList();
         int minHeat = Integer.MAX_VALUE;
-
-        printPath();
-
         for (Move endMove : endMoves) {
             int heat = dist.get(endMove);
             minHeat = Math.min(minHeat, heat);
-            printPath(endMove);
-            System.err.println("\n\n");
+//            printPath(endMove);
         }
         return minHeat;
     }
@@ -188,7 +178,7 @@ class HeatMap {
     }
 
     public int part2(Position start, Position end) {
-        return astar(start, end, 1, 10);
+        return astar(start, end, 4, 10);
     }
 
     public void printPath(Move move) {
@@ -196,31 +186,6 @@ class HeatMap {
         while (move != null) {
             path.put(move.p(), move);
             move = prev.get(move);
-        }
-
-        for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; j++) {
-                CityBlock cityBlock = getCityBlock(i, j);
-                if (path.containsKey(cityBlock.p)) {
-                    Move m = path.get(cityBlock.p);
-                    System.err.print(switch (m.d()) {
-                        case RIGHT -> ">";
-                        case LEFT -> "<";
-                        case UP -> "^";
-                        case DOWN -> "v";
-                    });
-                } else {
-                    System.err.print(cityBlock.heat);
-                }
-            }
-            System.err.println();
-        }
-    }
-
-    public void printPath() {
-        Map<Position, Move> path = new HashMap<>();
-        for (Map.Entry<Move, Move> e : prev.entrySet()) {
-            path.put(e.getKey().p(), e.getKey());
         }
 
         for (int i = 0; i < height; i++) {
@@ -259,8 +224,8 @@ public class Day17 {
     }
 
     public static void main(String[] args) throws Exception {
-        HeatMap hm = parse(example);
-//        HeatMap hm = parse(Files.readString(Path.of("resources/day17.txt")));
+//        HeatMap hm = parse(example2);
+        HeatMap hm = parse(Files.readString(Path.of("resources/day17.txt")));
         int part1 = hm.part1(new Position(0, 0), new Position(hm.height - 1, hm.width - 1));
         System.err.println("part1 = " + part1);
 
