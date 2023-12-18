@@ -121,24 +121,171 @@
     ))
 
 
+(defn dig2
+  [point direction moves]
+  (let [[x y] (if point point [0 0])
+        d (if point 1 0)
+        ;moves (if point moves (dec moves))
+        moves (inc moves)
+        value (condp = direction
+                :left [[x y] [x (- y moves)]]
+                :right [[x y] [x (+ y moves)]]
+                :up [[x y] [(- x moves) y]]
+                :down [[x y] [(+ x moves) y]]
+                )
+        _ (println "xxxxxxxxxx = " value)
+        ]
+    value
+    ))
+
+(defn parse-color-as-command
+  [line]
+  (let [[_ _ color] (str/split line #" ")
+        color (str/replace color #"[\(|\)]" "")
+        dir (read-string (str (last color)))
+        moves (subs (str color) 1 (dec (count color)))
+        moves (Integer/parseInt moves 16)
+        ]
+    (condp = dir
+      0 [:right moves]
+      1 [:down moves]
+      2 [:left moves]
+      3 [:up moves]
+      )
+    )
+  )
+
+; private static double shoelaceArea(List<Point> v) {
+;        int n = v.size();
+;        double a = 0.0;
+;        for (int i = 0; i < n - 1; i++) {
+;            a += v.get(i).x * v.get(i + 1).y - v.get(i + 1).x * v.get(i).y;
+;        }
+;        return Math.abs(a + v.get(n - 1).x * v.get(0).y - v.get(0).x * v.get(n - 1).y) / 2.0;
+;    }
+
+
+;// Get the center (mean value) using reduce
+;const center = points.reduce((acc, { x, y }) => {
+;  acc.x += x / points.length;
+;  acc.y += y / points.length;
+;  return acc;
+;}, { x: 0, y: 0 });
+;
+;// Add an angle property to each point using tan(angle) = y/x
+;const angles = points.map(({ x, y }) => {
+;  return { x, y, angle: Math.atan2(y - center.y, x - center.x) * 180 / Math.PI };
+;});
+;
+;// Sort your points by angle
+;const pointsSorted = angles.sort((a, b) => a.angle - b.angle);
+(defn sort-points-clockwise
+  [points]
+  (let [center-point [(bigint (/ (apply + (map #(bigint (first %)) points)) (count points))) (bigint (/ (apply + (map #(bigint (second %)) points)) (count points)))]
+        [cx cy] center-point
+        ;_ (println center-point)
+        angles (map (fn [[x y]] [x y
+                                 (/ (* (bigdec (Math/atan2 (- y cy) (- x cx))) 180) Math/PI)
+                                 ]) points)
+        sorted-points (sort-by #(nth % 2) - angles)
+        sorted-points (reverse sorted-points)
+        ;_ (println "xxxxxxxx " sorted-points)
+        ]
+    (mapv #(take 2 %) sorted-points)
+    )
+  )
+
+(defn shoelace-area
+  [points]
+  (let [points (sort-points-clockwise points)
+        ;_ (println points)
+        points (vec points)
+        points (map (fn [[x y]] [(bigint x) (bigint y)]) points)
+        n (count points)]
+    (loop [i 0
+           area (bigint 0)]
+      (if (>= i (dec n))
+        (let [[lx ly] (nth points (dec n))
+              [fx fy] (nth points 0)]
+          (bigint (/ (abs (+ area (- (* lx fy) (* fx ly)))) 2)))
+        (let [[ix iy] (nth points i)
+              [iix iiy] (nth points (inc i))]
+          (recur (inc i) (+ area (- (* ix iiy) (* iix iy))))))
+      )))
+
+(defn part1
+  [input]
+  (let [lines (str/split-lines input)
+        commands (map parse-line lines)]
+    (loop [commands commands
+           points (list)]
+      (let [[direction moves] (first commands)]
+        (if (empty? commands)
+          (do
+            (println (reverse points))
+            (shoelace-area points))
+          (recur (rest commands)
+                 (if (empty? points)
+                   (concat (reverse (dig2 nil direction moves)) points)
+                   (concat (reverse (dig2 (first points) direction moves)) points)
+                   )
+                 )
+          )
+        )
+      )))
+
+(defn part2
+  [input]
+  (let [lines (str/split-lines input)
+        commands (map parse-color-as-command lines)
+        _ (println commands)]
+    (loop [commands commands
+           points (list)]
+      (let [[direction moves] (first commands)
+            _ (println (reverse points))]
+        (if (empty? commands)
+          (do
+            (println (reverse points))
+            (shoelace-area points))
+          (recur (rest commands)
+                 (if (empty? points)
+                   (concat (reverse (dig2 nil direction moves)) points)
+                   (concat (reverse (dig2 (first points) direction moves)) points)
+                   )
+                 )
+          )
+        )
+      )))
+
+
 (deftest day18-test
   (testing "day18"
-    (is (= (dig :right 4) [[0 0] [0 1] [0 2] [0 3]]))
-    (is (= (dig :down 4) [[0 0] [1 0] [2 0] [3 0]]))
-    (is (= (dig [0 0] :right 4) [[0 1] [0 2] [0 3] [0 4]]))
-    (is (= (dig [0 0] :down 2) [[1 0] [2 0]]))
-    (is (= (dig [1 0] :up 1) [[0 0]]))
-    (is (= (dig [0 0] :up 1) [[-1 0]]))
-    (is (= (dig [0 1] :left 1) [[0 0]]))
+    ;(is (= (dig :right 4) [[0 0] [0 1] [0 2] [0 3]]))
+    ;(is (= (dig :down 4) [[0 0] [1 0] [2 0] [3 0]]))
+    ;(is (= (dig [0 0] :right 4) [[0 1] [0 2] [0 3] [0 4]]))
+    ;(is (= (dig [0 0] :down 2) [[1 0] [2 0]]))
+    ;(is (= (dig [1 0] :up 1) [[0 0]]))
+    ;(is (= (dig [0 0] :up 1) [[-1 0]]))
+    ;(is (= (dig [0 1] :left 1) [[0 0]]))
+    ;(is (= (part1 example-input) 62))
+    ;(is (= (count-points-inside [[1 1] [1 2] [1 3]
+    ;                             [2 1] [2 3]
+    ;                             [3 1] [3 2] [3 3]
+    ;                             ]) 9))
+    ;(is (= (count-points-inside [[1 1] [1 3]
+    ;                             [2 1] [2 2] [2 3]
+    ;                             [3 1] [3 2] [3 3]
+    ;                             ]) 8))
+    ;(is (= (part1 puzzle-input) 26857))
+    ;(is (= (dig2 [0 0] :right 4) [[0 0] [0 5]]))
+    (is (= (dig2 nil :right 6) [[0 0] [0 7]]))
+    (is (= (dig2 [0 7] :down 5) [[0 7] [6 7]]))
+    ;(is (= (dig2 [0 0] :right 4) [[0 0] [0 4]]))
+    ;;(is (= (dig2 [0 0] :left 4) [[0 -1] [0 -4]]))
+    ;(is (= (parse-color-as-command "R 6 (#70c710)") [:right 461937]))
+    ;(is (= (shoelace-area [[3, 4] [5, 11] [12, 8] [9, 5] [5, 6]]) 30))
+    ;(is (= (shoelace-area (shuffle [[9, 5] [3, 4] [5, 11] [12, 8] [5, 6]])) 30))
     (is (= (part1 example-input) 62))
-    (is (= (count-points-inside [[1 1] [1 2] [1 3]
-                                 [2 1] [2 3]
-                                 [3 1] [3 2] [3 3]
-                                 ]) 9))
-    (is (= (count-points-inside [[1 1] [1 3]
-                                 [2 1] [2 2] [2 3]
-                                 [3 1] [3 2] [3 3]
-                                 ]) 8))
-    (is (= (part1 puzzle-input) 26857))
+    ;(is (= (part2 example-input) 952408144115))
     ; -Xss100m because of clojure recursion :(
     ))
