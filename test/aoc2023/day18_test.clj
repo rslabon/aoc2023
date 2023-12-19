@@ -168,43 +168,34 @@
     (apply + d)
     ))
 
+(defn execute
+  [commands]
+  (loop [commands commands
+         points (list)]
+    (let [[direction moves] (first commands)]
+      (if (empty? commands)
+        (+ (shoelace-area (reverse points)) (/ (bigint (boundry points)) 2) 1)
+        (recur (rest commands)
+               (if (empty? points)
+                 (concat (reverse (dig2 nil direction moves)) points)
+                 (concat (reverse (dig2 (first points) direction moves)) points)
+                 )
+               )
+        )
+      )
+    ))
+
 (defn part1
   [input]
   (let [lines (str/split-lines input)
         commands (map parse-line lines)]
-    (loop [commands commands
-           points (list)]
-      (let [[direction moves] (first commands)]
-        (if (empty? commands)
-          (+ (shoelace-area (reverse points)) (/ (bigint (boundry points)) 2) 1)
-          (recur (rest commands)
-                 (if (empty? points)
-                   (concat (reverse (dig2 nil direction moves)) points)
-                   (concat (reverse (dig2 (first points) direction moves)) points)
-                   )
-                 )
-          )
-        )
-      )))
+    (execute commands)))
 
 (defn part2
   [input]
   (let [lines (str/split-lines input)
         commands (map parse-color-as-command lines)]
-    (loop [commands commands
-           points (list)]
-      (let [[direction moves] (first commands)]
-        (if (empty? commands)
-          (+ (shoelace-area (reverse points)) (bigint (/ (boundry points) 2)) 1)
-          (recur (rest commands)
-                 (if (empty? points)
-                   (concat (reverse (dig2 nil direction moves)) points)
-                   (concat (reverse (dig2 (first points) direction moves)) points)
-                   )
-                 )
-          )
-        )
-      )))
+    (execute commands)))
 
 
 (deftest day18-test
