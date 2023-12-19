@@ -13,13 +13,13 @@
                  (str/replace #"\}" ""))
         [name line] (str/split line #" ")
         rules (str/split line #",")
-        adj (into {} (map (fn [rule]
-                            (if (str/includes? rule ":")
-                              (let [[_ rule-category rule-condition rule-value rule-goto] (re-matches #"(\w)([><])(\d+):(\w+)" rule)
-                                    rule-value (read-string rule-value)]
-                                [rule-goto (str "(" rule-condition " " rule-category " " rule-value ")")]
-                                )
-                              [rule :pass])) rules))
+        adj (mapv (fn [rule]
+                    (if (str/includes? rule ":")
+                      (let [[_ rule-category rule-condition rule-value rule-goto] (re-matches #"(\w)([><])(\d+):(\w+)" rule)
+                            rule-value (read-string rule-value)]
+                        [rule-goto (str "(" rule-condition " " rule-category " " rule-value ")")]
+                        )
+                      [rule :pass])) rules)
         ]
     {:name name :rules rules :adj adj}
     )
@@ -119,14 +119,36 @@
     )
   )
 
+(defn negate-condition
+  [condition]
+  (if (str/includes? condition ">")
+    (str/replace condition ">" "<=")
+    (str/replace condition "<" ">=")
+    )
+  )
+
 (defn make-accepted-paths
   [workflows-by-name current-workflow-name conditions]
   (cond
-    (= current-workflow-name "A") {:conditions (reverse (remove #(= % :pass) conditions))}
+    (= current-workflow-name "A") {:conditions (reverse conditions)}
     (= current-workflow-name "R") nil
     :else (let [current-workflow (get workflows-by-name current-workflow-name)]
-            (map (fn [[name condition]] (make-accepted-paths workflows-by-name name (conj conditions condition))) (:adj current-workflow))
-            ;FIXME ostatni warunek neguje poprzednie bo doszlismy do konca listy warunkow!
+            (map-indexed
+              (fn [idx [name condition]]
+                (let [prev-conditions (if (> idx 0)
+                                        (take idx (:adj current-workflow))
+                                        [])
+                      new-conditions (map (fn [[_ v]] (negate-condition v)) prev-conditions)
+                      new-conditions (if (empty? new-conditions)
+                                       [condition]
+                                       (conj new-conditions condition))
+                      new-conditions (remove #(= % :pass) new-conditions)
+                      ;_ (println "parent " current-workflow-name " current " name  idx " xxxx " prev-conditions  " next " new-conditions)
+                      ]
+                  (make-accepted-paths workflows-by-name name (into conditions new-conditions))
+                  )
+                )
+              (:adj current-workflow))
             )
     )
   )
@@ -143,6 +165,8 @@
     conditions-to-be-accepted
     ))
 
+
+;takes forever to complete - refactoring needed!!!
 (defn count-possible-numbers-that-passes
   [conditions]
   (let [s-conditions (filter #(str/includes? % "s") conditions)
@@ -150,16 +174,16 @@
         m-conditions (filter #(str/includes? % "m") conditions)
         a-conditions (filter #(str/includes? % "a") conditions)
         s-count (if (empty? s-conditions)
-                  4001
+                  4000
                   (count (filter (fn [s] (if (eval (read-string (str "(let [s " s "] (and " (str/join " " s-conditions) "))"))) true false)) (range 1 4001))))
         a-count (if (empty? a-conditions)
                   4000
                   (count (filter (fn [a] (if (eval (read-string (str "(let [a " a "] (and " (str/join " " a-conditions) "))"))) true false)) (range 1 4001))))
         m-count (if (empty? m-conditions)
-                  4001
+                  4000
                   (count (filter (fn [m] (if (eval (read-string (str "(let [m " m "] (and " (str/join " " m-conditions) "))"))) true false)) (range 1 4001))))
         x-count (if (empty? x-conditions)
-                  4001
+                  4000
                   (count (filter (fn [x] (if (eval (read-string (str "(let [x " x "] (and " (str/join " " x-conditions) "))"))) true false)) (range 1 4001))))
         ]
     (* s-count a-count m-count x-count)
@@ -170,18 +194,37 @@
   [input]
   (let [[workflows-input ratings-input] (str/split input #"\n\n")
         conditions (find-accepted-conditions workflows-input)
-        xxx (map count-possible-numbers-that-passes conditions)
-        _ (println conditions xxx (apply + xxx))
+        total-numbers (map-indexed
+                        (fn [idx condition]
+                          (do (println "Processing " (inc idx) "/" (count conditions))
+                              (count-possible-numbers-that-passes condition)))
+                        conditions)
         ]
-    (apply + xxx)
+    (apply + total-numbers)
+    )
+  )
+
+(defn number-range
+  [conditions]
+  (let [less (map (fn [condition] (let [[_ value] (re-matches #"(\d+)" condition)] (read-string value))) (filter #(str/includes? % "<") conditions))
+        less (if less (map dec less) [4000])
+        less (apply min less)
+        greater (map (fn [condition] (let [[_ value] (re-matches #"(\d+)" condition)] (read-string value))) (filter #(str/includes? % ">") conditions))
+        greater (if greater (map inc greater) [1])
+        greater (apply max greater)
+        ]
+    (if (< less  greater)
+      nil
+      [greater less]
+      )
     )
   )
 
 (deftest day19-test
   (testing "day19"
-    (is (= (parse-workflow "px{a<2006:qkq,m>2090:A,rfg}") {:adj   {"A"   "(> m 2090)"
-                                                                   "qkq" "(< a 2006)"
-                                                                   "rfg" :pass}
+    (is (= (parse-workflow "px{a<2006:qkq,m>2090:A,rfg}") {:adj   [["qkq" "(< a 2006)"]
+                                                                   ["A" "(> m 2090)"]
+                                                                   ["rfg" :pass]]
                                                            :name  "px"
                                                            :rules ["a<2006:qkq" "m>2090:A" "rfg"]}))
     (is (= (parse-rating "{x=787,m=2655,a=1222,s=2876}") {"x" 787 "m" 2655 "a" 1222 "s" 2876}))
@@ -191,7 +234,13 @@
     (is (= (next-workflow-name {"x" 787 "m" 2655 "a" 1222 "s" 2876} (parse-workflow "in{s<1351:px,qqz}")) "qqz"))
     (is (= (part1 example-input) 19114))
     (is (= (part1 puzzle-input) 406934))
-    ;(is (= (count-possible-numbers-that-passes ["(< s 10)" "(> s 8)" "(< a 2)" "(< m 2)" "(< x 2)"]) 1))
-    ;(is (= (count-possible-numbers-that-passes ["(< s 10)" "(> s 7)" "(< a 2)" "(< m 2)" "(< x 2)"]) 2))
-    (is (= (part2 puzzle-input) 167409079868000))
+    (is (= (count-possible-numbers-that-passes ["(< s 10)" "(>= s 10)"]) 0))
+    (is (= (negate-condition "(< s 1351)") "(>= s 1351)"))
+    (is (= (negate-condition "(> s 1351)") "(<= s 1351)"))
+
+    ;(is (= (number-range ["(> s 2)" "(< s 10)"]) [3 9]))
+
+    ;(is (= (part2 example-input) 167409079868000))
+    ;(is (= (part2 puzzle-input) 131192538505367))
+    ;optymalization needed!!! part 2 takes 1h !!!
     ))
