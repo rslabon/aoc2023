@@ -167,13 +167,19 @@
     (apply + d)
     ))
 
+;https://en.wikipedia.org/wiki/Pick%27s_theorem
+(defn pick-formula
+  [area perimeter]
+  (bigint (+ area (/ perimeter 2) 1))
+  )
+
 (defn execute
   [commands]
   (loop [commands commands
          points (list)]
     (let [[direction moves] (first commands)]
       (if (empty? commands)
-        (+ (shoelace-area (reverse points)) (/ (bigint (perimeter points)) 2) 1)
+        (pick-formula (shoelace-area (reverse points)) (perimeter points))
         (recur (rest commands)
                (if (empty? points)
                  (concat (reverse (dig2 nil direction moves)) points)
