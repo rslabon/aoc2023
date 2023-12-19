@@ -127,13 +127,12 @@
 
 (defn dig2
   [point direction moves]
-  (let [[x y] (if point point [0 0])
-        d (if point 0 0)]
+  (let [[x y] (if point point [0 0])]
     (condp = direction
-      :left [[x (- y d)] [x (- y moves d)]]
-      :right [[x (+ y d)] [x (+ y moves d)]]
-      :up [[(- x d) y] [(- x moves d) y]]
-      :down [[(+ x d) y] [(+ x moves d) y]]
+      :left [[x y] [x (- y moves)]]
+      :right [[x y] [x (+ y moves)]]
+      :up [[x y] [(- x moves) y]]
+      :down [[x y] [(+ x moves) y]]
       )
     ))
 
