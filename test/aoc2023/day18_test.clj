@@ -160,7 +160,7 @@
     (/ (abs (bigint (apply + (map (fn [[[ax ay] [bx by]]] (- (* ax by) (* ay bx))) (partition 2 points))))) 2)
     ))
 
-(defn boundry
+(defn perimeter
   [points]
   (let [lines (partition 2 points)
         d (map (fn [[a b]] (distance a b)) lines)]
@@ -173,7 +173,7 @@
          points (list)]
     (let [[direction moves] (first commands)]
       (if (empty? commands)
-        (+ (shoelace-area (reverse points)) (/ (bigint (boundry points)) 2) 1)
+        (+ (shoelace-area (reverse points)) (/ (bigint (perimeter points)) 2) 1)
         (recur (rest commands)
                (if (empty? points)
                  (concat (reverse (dig2 nil direction moves)) points)
