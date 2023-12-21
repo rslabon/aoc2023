@@ -1,6 +1,8 @@
 package aoc2023;
 
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -11,7 +13,7 @@ class Pulse {
     public static final boolean HIGH = true;
 }
 
-record SentPulse(String from, String to, boolean state) {
+record PulseTick(String from, String to, boolean state) {
     @Override
     public String toString() {
         String p = state == Pulse.HIGH ? "high" : "low";
@@ -20,13 +22,19 @@ record SentPulse(String from, String to, boolean state) {
 }
 
 interface Module {
-    Queue<SentPulse> handlePulse(SentPulse pulse);
+    Queue<PulseTick> handlePulse(PulseTick pulse);
 
     List<String> getOutputs();
 
     String getId();
 
     Module copy();
+
+    String getState();
+
+    List<String> getInputs();
+
+    void addInput(String input);
 }
 
 class FlipFlop implements Module {
@@ -34,22 +42,28 @@ class FlipFlop implements Module {
     private final String id;
     private List<String> outputs;
 
+    private List<String> inputs = new ArrayList<>();
+
     public FlipFlop(String id, List<String> outputs) {
         this.id = id;
         this.outputs = outputs;
     }
 
+    public void addInput(String input) {
+        this.inputs.add(input);
+    }
+
     @Override
-    public Queue<SentPulse> handlePulse(SentPulse pulse) {
-        LinkedList<SentPulse> sentPulses = new LinkedList<>();
+    public Queue<PulseTick> handlePulse(PulseTick pulse) {
+        LinkedList<PulseTick> pulsTicks = new LinkedList<>();
         if (pulse.state()) {
-            return sentPulses;
-        }
-        for (String m : outputs) {
-            sentPulses.add(new SentPulse(this.id, m, !state));
+            return pulsTicks;
         }
         this.state = !state;
-        return sentPulses;
+        for (String m : outputs) {
+            pulsTicks.add(new PulseTick(this.id, m, state));
+        }
+        return pulsTicks;
     }
 
     @Override
@@ -68,6 +82,16 @@ class FlipFlop implements Module {
     }
 
     @Override
+    public String getState() {
+        return state ? "-H-" : "-L-";
+    }
+
+    @Override
+    public List<String> getInputs() {
+        return inputs;
+    }
+
+    @Override
     public String toString() {
         return "%" + id;
     }
@@ -77,54 +101,59 @@ class FlipFlop implements Module {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         FlipFlop flipFlop = (FlipFlop) o;
-        return state == flipFlop.state && Objects.equals(id, flipFlop.id);
+        return Objects.equals(id, flipFlop.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(state, id);
+        return Objects.hash(id);
     }
 }
 
 class Conjunction implements Module {
 
     private final String id;
-    private List<String> output;
+    private List<String> outputs;
     private Map<String, Boolean> state;
+    private List<String> inputs = new ArrayList<>();
+
 
     public Conjunction(String id, List<String> outputs) {
         this.id = id;
-        this.output = outputs;
+        this.outputs = outputs;
         this.state = new HashMap<>();
     }
 
     public void addInput(String input) {
         this.state.put(input, false);
+        this.inputs.add(input);
     }
 
     @Override
-    public Queue<SentPulse> handlePulse(SentPulse pulse) {
-        if (state.containsKey(pulse.from())) {
-            state.put(pulse.from(), pulse.state());
-        }
-        Set<Boolean> values = new HashSet<>(state.values());
-        LinkedList<SentPulse> sentPulses = new LinkedList<>();
-        boolean allConnectedAreHigh = values.size() == 1 && values.iterator().next();
-        if (allConnectedAreHigh) {
-            for (String m : output) {
-                sentPulses.add(new SentPulse(this.id, m, Pulse.LOW));
+    public Queue<PulseTick> handlePulse(PulseTick pulse) {
+        state.put(pulse.from(), pulse.state());
+        LinkedList<PulseTick> pulsTicks = new LinkedList<>();
+        boolean inputsHigh = areAllInputsHigh();
+        if (inputsHigh) {
+            for (String m : outputs) {
+                pulsTicks.add(new PulseTick(this.id, m, Pulse.LOW));
             }
         } else {
-            for (String m : output) {
-                sentPulses.add(new SentPulse(this.id, m, Pulse.HIGH));
+            for (String m : outputs) {
+                pulsTicks.add(new PulseTick(this.id, m, Pulse.HIGH));
             }
         }
-        return sentPulses;
+        return pulsTicks;
+    }
+
+    private boolean areAllInputsHigh() {
+        Set<Boolean> values = new HashSet<>(state.values());
+        return values.size() == 1 && values.iterator().next();
     }
 
     @Override
     public List<String> getOutputs() {
-        return output;
+        return outputs;
     }
 
     @Override
@@ -134,9 +163,19 @@ class Conjunction implements Module {
 
     @Override
     public Module copy() {
-        Conjunction conjunction = new Conjunction(id, new ArrayList<>(output));
+        Conjunction conjunction = new Conjunction(id, new ArrayList<>(outputs));
         conjunction.state = new HashMap<>(state);
         return conjunction;
+    }
+
+    @Override
+    public String getState() {
+        return areAllInputsHigh() ? "-H-" : "-L-";
+    }
+
+    @Override
+    public List<String> getInputs() {
+        return inputs;
     }
 
     @Override
@@ -149,12 +188,12 @@ class Conjunction implements Module {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Conjunction that = (Conjunction) o;
-        return Objects.equals(id, that.id) && Objects.equals(state, that.state);
+        return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, state);
+        return Objects.hash(id);
     }
 }
 
@@ -163,19 +202,24 @@ class Broadcast implements Module {
     public static final String ID = "broadcaster";
     private final String id;
     private List<String> outputs;
+    private List<String> inputs = new ArrayList<>();
 
     public Broadcast(String id, List<String> outputs) {
         this.id = id;
         this.outputs = outputs;
     }
 
+    public void addInput(String input) {
+        this.inputs.add(input);
+    }
+
     @Override
-    public Queue<SentPulse> handlePulse(SentPulse pulse) {
-        LinkedList<SentPulse> sentPulses = new LinkedList<>();
+    public Queue<PulseTick> handlePulse(PulseTick pulse) {
+        LinkedList<PulseTick> pulsTicks = new LinkedList<>();
         for (String m : outputs) {
-            sentPulses.add(new SentPulse(id, m, pulse.state()));
+            pulsTicks.add(new PulseTick(id, m, pulse.state()));
         }
-        return sentPulses;
+        return pulsTicks;
     }
 
     @Override
@@ -191,6 +235,16 @@ class Broadcast implements Module {
     @Override
     public Module copy() {
         return new Broadcast(id, new ArrayList<>(outputs));
+    }
+
+    @Override
+    public String getState() {
+        return "---";
+    }
+
+    @Override
+    public List<String> getInputs() {
+        return inputs;
     }
 
     @Override
@@ -213,16 +267,21 @@ class Broadcast implements Module {
 
 class Button implements Module {
     private String broadcast;
+    private List<String> inputs = new ArrayList<>();
 
     public Button(String broadcast) {
         this.broadcast = broadcast;
     }
 
+    public void addInput(String input) {
+        this.inputs.add(input);
+    }
+
     @Override
-    public Queue<SentPulse> handlePulse(SentPulse pulse) {
-        LinkedList<SentPulse> sentPulses = new LinkedList<>();
-        sentPulses.add(new SentPulse(toString(), broadcast, Pulse.LOW));
-        return sentPulses;
+    public Queue<PulseTick> handlePulse(PulseTick pulse) {
+        LinkedList<PulseTick> pulsTicks = new LinkedList<>();
+        pulsTicks.add(new PulseTick(toString(), broadcast, Pulse.LOW));
+        return pulsTicks;
     }
 
     @Override
@@ -238,6 +297,16 @@ class Button implements Module {
     @Override
     public Module copy() {
         return new Button(broadcast);
+    }
+
+    @Override
+    public String getState() {
+        return "---";
+    }
+
+    @Override
+    public List<String> getInputs() {
+        return inputs;
     }
 
     @Override
@@ -262,14 +331,18 @@ class Button implements Module {
 class Output implements Module {
 
     private final String id;
+    private List<String> inputs = new ArrayList<>();
 
     public Output(String id) {
         this.id = id;
     }
 
+    public void addInput(String input) {
+        this.inputs.add(input);
+    }
+
     @Override
-    public Queue<SentPulse> handlePulse(SentPulse pulse) {
-//        System.err.println(pulse);
+    public Queue<PulseTick> handlePulse(PulseTick pulse) {
         return new LinkedList<>();
     }
 
@@ -285,12 +358,22 @@ class Output implements Module {
 
     @Override
     public String getId() {
-        return toString();
+        return id;
     }
 
     @Override
     public Module copy() {
         return new Output(id);
+    }
+
+    @Override
+    public String getState() {
+        return "---";
+    }
+
+    @Override
+    public List<String> getInputs() {
+        return inputs;
     }
 
     @Override
@@ -309,109 +392,110 @@ class Output implements Module {
 
 public class Day20 {
 
-    private static final Map<Map<String, Module>, Map<String, Module>> cache = new HashMap<>();
     private static long pushNr = 0;
-    private static Map<String, Module> currentModules = new HashMap<>();
+
+    static double lcm(long a, long b) {
+        return Math.abs(a * b) / BigInteger.valueOf(a).gcd(BigInteger.valueOf(b)).doubleValue();
+    }
+
+    static double lcm(List<Long> numbers) {
+        return numbers.stream().reduce((a, b) -> (long) lcm(a, b)).get();
+    }
+
 
     public static void main(String[] args) throws Exception {
 //        String input = example2;
         String input = Files.readString(Path.of("resources/day20.txt"));
         Map<String, Module> modules = parse(input);
         Module button = modules.get("button");
-//        int part1 = pushTimes(1000, button, modules);
-//        System.err.println("part1 = " + part1);//730797576
+        int part1 = pushTimes(1000, button, modules);
+        System.err.println("part1 = " + part1);//730797576
 
-        modules = parse(input);
-        currentModules = modules;
-        pushNr = 0;
-        for (int i = 0; i < 1000000; i++) {
-            pushTimes2(1000000, button, currentModules);
+        Set<String> moduleIds = ancestors(2, Set.of(modules.get("rx")), modules);
+        List<Long> cycles = new ArrayList<>();
+        for (String id : moduleIds) {
+            modules = parse(input);
+            Long push = pushTimes(button, modules, modules.get(id));
+            cycles.add(push);
         }
-    }
-
-    private static Map<String, Module> copy(Map<String, Module> modules) {
-        Map<String, Module> copy = new HashMap<>();
-        for (Module m : modules.values()) {
-            copy.put(m.getId(), m.copy());
-        }
-        return copy;
+        double part2 = lcm(cycles);
+        System.err.println("part2 = " + BigDecimal.valueOf(part2).toPlainString());//226732077152351
     }
 
     private static int pushTimes(int n, Module button, Map<String, Module> modules) {
         int low = 0;
         int high = 0;
         for (int i = 0; i < n; i++) {
-//            System.err.println(" PUSH " + (i + 1));
             Pair<Integer> result = push(button, modules);
             low += result.first;
             high += result.second;
-//            System.err.println("\n\n");
         }
         return low * high;
     }
 
     private static Pair<Integer> push(Module button, Map<String, Module> modules) {
-        Queue<SentPulse> q = new LinkedList<>(button.handlePulse(null));
+        Queue<PulseTick> q = new LinkedList<>(button.handlePulse(null));
         int lowCount = 0;
         int highCount = 0;
         while (!q.isEmpty()) {
-            SentPulse pulse = q.poll();
-//            System.err.println(pulse);
+            PulseTick pulse = q.poll();
             if (pulse.state()) {
                 highCount++;
             } else {
                 lowCount++;
             }
-            Module target = modules.getOrDefault(pulse.to(), new Output(pulse.to()));
+            Module target = modules.get(pulse.to());
             q.addAll(target.handlePulse(pulse));
         }
-
-
         return new Pair<>(lowCount, highCount);
     }
 
-    private static void pushTimes2(int n, Module button, Map<String, Module> modules) {
-        for (int i = 0; i < n; i++) {
-            push2(button, modules);
+    private static Long pushTimes(Module button, Map<String, Module> modules, Module m) {
+        pushNr = 0;
+        for (int i = 0; i < 5000; i++) {
+            Long nr = push(button, modules, m);
+            if (nr != null) {
+                return nr;
+            }
         }
+        return null;
     }
 
-    private static void push2(Module button, Map<String, Module> modules) {
-        if (pushNr % 10000000 == 0) {
-            System.err.println("PUSH " + pushNr);
-        }
-        Map<String, Module> cacheEntry = cache.get(modules);
-        if (cacheEntry != null) {
-            currentModules = copy(cacheEntry);
-            pushNr++;
-            System.err.println(pushNr + " CACHE HIT !!!!");
-            return;
-        }
-
-//        Map<String, Module> input = copy(modules);
-
-        Queue<SentPulse> q = new LinkedList<>(button.handlePulse(null));
-        while (!q.isEmpty()) {
-            SentPulse pulse = q.poll();
-//            System.err.println(pulse);
-            Module target = modules.getOrDefault(pulse.to(), new Output(pulse.to()));
-            if (pulse.to().equals("rx") && !pulse.state()) {
-                System.err.println("**************************************** RX pushes = " + pushNr + " ****************************************");
-                throw new IllegalArgumentException(" FOUND part 2 = " + pushNr);
-            }
-            q.addAll(target.handlePulse(pulse));
-
-//            cacheEntry = cache.get(modules);
-//            if (cacheEntry != null) {
-////                System.err.println(pushNr + " CACHE HIT !!!!");
-//                currentModules = copy(cacheEntry);
-//                pushNr++;
-//                return;
-//            }
-        }
+    private static Long push(Module button, Map<String, Module> modules, Module m) {
         pushNr++;
-//        cache.put(input, copy(modules));
-//        System.err.println(cache.size());
+        Queue<PulseTick> q = new LinkedList<>(button.handlePulse(null));
+        while (!q.isEmpty()) {
+            PulseTick pulse = q.poll();
+            Module target = modules.get(pulse.to());
+            q.addAll(target.handlePulse(pulse));
+            if (m != null) {
+                if (target.equals(m) && !pulse.state()) {
+                    return pushNr;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static Set<String> ancestors(int level, Set<Module> m, Map<String, Module> modules) {
+        if (level == 0) {
+            return m.stream().map(Module::getId).collect(Collectors.toSet());
+        }
+        Set<String> levelModules = m.stream().flatMap(i -> i.getInputs().stream()).collect(Collectors.toSet());
+        return ancestors(level - 1, levelModules.stream().map(modules::get).collect(Collectors.toSet()), modules);
+    }
+
+    private static void printState(Map<String, Module> modules) {
+        StringBuilder line = new StringBuilder(String.format("%4d", pushNr));
+        for (Module m : modules.values()) {
+            if (Set.of("cd", "qx", "rk", "zf").contains(m.getId())) {
+                if (m.getState().contains("L")) {
+                    System.err.println("");
+                }
+                line.append(m.getState());
+            }
+        }
+        System.err.println(line);
     }
 
     private static Map<String, Module> parse(String input) {
@@ -436,12 +520,17 @@ public class Day20 {
             }
         }
 
-        Set<Conjunction> conjunctions = modules.values().stream().filter(m -> m instanceof Conjunction).map(m -> (Conjunction) m).collect(Collectors.toSet());
+        Set<String> allModuleIds = modules.values().stream().flatMap(m -> m.getOutputs().stream()).collect(Collectors.toSet());
+        for (String id : allModuleIds) {
+            if (!modules.containsKey(id)) {
+                modules.put(id, new Output(id));
+            }
+        }
+
         for (Module module : modules.values()) {
-            for (Conjunction conjunction : conjunctions) {
-                if (module.getOutputs().contains(conjunction.getId())) {
-                    conjunction.addInput(module.getId());
-                }
+            Set<Module> children = module.getOutputs().stream().map(modules::get).collect(Collectors.toSet());
+            for (Module child : children) {
+                child.addInput(module.getId());
             }
         }
         return modules;
