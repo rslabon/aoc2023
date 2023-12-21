@@ -485,19 +485,6 @@ public class Day20 {
         return ancestors(level - 1, levelModules.stream().map(modules::get).collect(Collectors.toSet()), modules);
     }
 
-    private static void printState(Map<String, Module> modules) {
-        StringBuilder line = new StringBuilder(String.format("%4d", pushNr));
-        for (Module m : modules.values()) {
-            if (Set.of("cd", "qx", "rk", "zf").contains(m.getId())) {
-                if (m.getState().contains("L")) {
-                    System.err.println("");
-                }
-                line.append(m.getState());
-            }
-        }
-        System.err.println(line);
-    }
-
     private static Map<String, Module> parse(String input) {
         String[] lines = input.split("\n");
         Map<String, Module> modules = new HashMap<>();
