@@ -71,7 +71,9 @@ public class Day24 {
             return false;//meet in past
         }
 
-        //they meet at different times t1 and t2
+        // they meet at different times t1 and t2 in the same point (x, y)
+        // p1.x() + t1 * v1.x() == p2.x() + t2 * v2.x()
+
         double x = p1.x() + t1 * v1.x();
         double y = p1.y() + t1 * v1.y();
 
