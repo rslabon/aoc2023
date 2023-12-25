@@ -5,34 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-enum Direction {
-    LEFT {
-        @Override
-        Set<Direction> turn() {
-            return Set.of(UP, DOWN);
-        }
-    },
-    RIGHT {
-        @Override
-        Set<Direction> turn() {
-            return Set.of(UP, DOWN);
-        }
-    },
-    UP {
-        @Override
-        Set<Direction> turn() {
-            return Set.of(LEFT, RIGHT);
-        }
-    },
-    DOWN {
-        @Override
-        Set<Direction> turn() {
-            return Set.of(LEFT, RIGHT);
-        }
-    };
-
-    abstract Set<Direction> turn();
-}
 
 record Move(Position p, Direction d, int steps) {
     Set<Move> next(int minSteps, int maxSteps) {
