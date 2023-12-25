@@ -57,17 +57,21 @@ public class Day24 {
     }
 
     private static boolean insideTestArea(Point3D p1, Point3D v1, Point3D p2, Point3D v2, long min, long max) {
+        //if they meet bellow equation must hold (for x and y position)
+        //p1 + t1 * v1 == p2 + t2 * v2
+
         long t1b = v1.x() * v2.y() - v1.y() * v2.x();
         long t2b = v1.y() * v2.x() - v1.x() * v2.y();
         if (t1b == 0 || t2b == 0) {
-            return false;
+            return false;//parallel or never meet
         }
         double t1 = (p2.x() * v2.y() + p1.y() * v2.x() - p2.y() * v2.x() - p1.x() * v2.y()) / (double) t1b;
         double t2 = (p1.x() * v1.y() + p2.y() * v1.x() - p1.y() * v1.x() - p2.x() * v1.y()) / (double) t2b;
         if (t1 < 0 || t2 < 0) {
-            return false;
+            return false;//meet in past
         }
 
+        //they meet at different times t1 and t2
         double x = p1.x() + t1 * v1.x();
         double y = p1.y() + t1 * v1.y();
 
