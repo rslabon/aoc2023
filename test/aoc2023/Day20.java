@@ -427,8 +427,8 @@ public class Day20 {
         int high = 0;
         for (int i = 0; i < n; i++) {
             Pair<Integer> result = push(button, modules);
-            low += result.first;
-            high += result.second;
+            low += result.first();
+            high += result.second();
         }
         return low * high;
     }
@@ -535,7 +535,4 @@ public class Day20 {
             "&inv -> b\n" +
             "%b -> con\n" +
             "&con -> output";
-
-    record Pair<T>(T first, T second) {
-    }
 }
